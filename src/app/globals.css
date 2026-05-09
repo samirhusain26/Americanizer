@@ -1,0 +1,31 @@
+@import url("https://fonts.googleapis.com/css2?family=Funnel+Display:wght@300..800&family=IBM+Plex+Mono:wght@300;400;500;600&family=Newsreader:opsz,wght@6..72,300..700&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --color-canvas: #14130f;
+  --color-paper: #f4f1eb;
+  --color-taupe: #2a2823;
+  --color-accent: oklch(74% 0.16 60);
+  --color-accent-yellow-green: oklch(82% 0.18 130);
+  --color-accent-magenta: oklch(68% 0.24 350);
+  --color-accent-cyan: oklch(78% 0.14 200);
+
+  --font-display: "Funnel Display", "Inter", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-serif: "Newsreader", "Iowan Old Style", serif;
+}
+
+@layer base {
+  html, body {
+    background: var(--color-canvas);
+    color: var(--color-paper);
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+  }
+  * { -webkit-tap-highlight-color: transparent; }
+}
+
+.num-display { font-family: var(--font-display); font-feature-settings: "tnum" 1, "lnum" 1; letter-spacing: -0.04em; }
+.ui-mono { font-family: var(--font-mono); letter-spacing: 0.02em; }
+
+.knob-tick { background: currentColor; }

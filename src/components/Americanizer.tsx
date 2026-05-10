@@ -33,9 +33,10 @@ const TEMP_COLD: [number, number, number] = [188, 232, 236];   // icy cyan
 const TEMP_MID: [number, number, number] = [214, 218, 190];    // default LCD green-grey
 const TEMP_HOT: [number, number, number] = [255, 120, 40];     // safety orange
 
-// Weight: olive tone to deepen as mass grows
-const WEIGHT_EMPTY: [number, number, number] = [230, 232, 214];
-const WEIGHT_HEAVY: [number, number, number] = [92, 96, 50];   // deep olive
+// Weight: olive tone to deepen as mass grows — kept light enough to preserve
+// ink-on-LCD contrast for the number glyphs.
+const WEIGHT_EMPTY: [number, number, number] = [232, 234, 214];
+const WEIGHT_HEAVY: [number, number, number] = [176, 172, 120];
 
 // Volume fill color (amber)
 const VOL_FILL: [number, number, number] = [240, 196, 48];
@@ -143,22 +144,28 @@ export default function Americanizer() {
       if (current.category === "weight") {
         const k = clamp(w / 150, 0, 1);
         const c = lerpColor(WEIGHT_EMPTY, WEIGHT_HEAVY, k);
-        const alpha = lerp(0.25, 1, k);
-        const top = rgb(c, alpha);
-        const bot = rgb([Math.max(0, c[0] - 14), Math.max(0, c[1] - 14), Math.max(0, c[2] - 14)], alpha);
+        const top = rgb(c);
+        const bot = rgb([Math.max(0, c[0] - 18), Math.max(0, c[1] - 18), Math.max(0, c[2] - 18)]);
         return `${stripes}, linear-gradient(180deg, ${top} 0%, ${bot} 100%)`;
       }
       if (current.category === "volume") {
         const fill = clamp(vol / 5, 0, 1);
         const fillPct = fill * 100;
-        const empty = "linear-gradient(180deg, #d8dcc6 0%, #c6caaf 100%)";
-        const liquid = `linear-gradient(180deg, ${empty}), linear-gradient(0deg, ${rgb(
-          VOL_FILL,
-          0.92
-        )} 0%, ${rgb(VOL_FILL, 0.92)} ${fillPct}%, transparent ${fillPct}%, transparent 100%)`;
-        return `${stripes}, ${liquid}`;
+        // Liquid layer on top of the default LCD green: amber from the bottom up
+        // to `fillPct`, transparent above so the shell shows through.
+        const amber = rgb(VOL_FILL, 0.88);
+        const liquid = `linear-gradient(0deg, ${amber} 0%, ${amber} ${fillPct}%, rgba(240,196,48,0) ${fillPct}%, rgba(240,196,48,0) 100%)`;
+        const base = "linear-gradient(180deg, #d8dcc6 0%, #c6caaf 100%)";
+        return `${stripes}, ${liquid}, ${base}`;
       }
-      // length: stable green
+      if (current.category === "length") {
+        // Stable green base, but overlaid with a ruler whose spacing
+        // matches --rule-size (updated by its own transform below).
+        const base = "linear-gradient(180deg, #d8dcc6 0%, #c6caaf 100%)";
+        const ticks =
+          "repeating-linear-gradient(90deg, rgba(0,0,0,0.28) 0 1.5px, transparent 1.5px var(--rule-size, 10px))";
+        return `${ticks}, ${stripes}, ${base}`;
+      }
       return "var(--lcd-bg-default)";
     }
   );

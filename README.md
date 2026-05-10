@@ -152,11 +152,13 @@ When a zone is active (and not editing), `NumberDisplay` renders a 3-px LCD-styl
 
 - **Volume + culinary US units** (`cup`, `tbsp`, `tsp`, `floz`) render the fractional remainder as the nearest of `⅛ ⅙ ¼ ⅓ ⅜ ½ ⅝ ⅔ ¾ ⅚ ⅞`. Underlying state is always exact decimals — the fraction is display only.
 - **Length** stays one-to-one (no compound `5'10"` output). Pick `cm`, `in`, `ft`, etc. directly.
-- **General numbers** scale precision to magnitude (3 decimals under 1, 2 between 1 and 1000, 0 above 10000).
+- **General numbers** use `Math.round(value).toString()` — whole integers only.
 
 ### Haptics
 
-`clickHaptic(intensity?: number)` — single function, single source. The Web Audio implementation is intentionally a thin shim so it can be swapped one-for-one with a Capacitor haptic plugin when shipping to native shells.
+`lib/haptics.ts` exports `clickHaptic(intensity?: number)` and `toggleMute()`. The Web Audio implementation is intentionally a thin shim so it can be swapped one-for-one with a Capacitor haptic plugin when shipping to native shells.
+
+The dial's **center mute button** (a recessed circle at z-30, above the drag capture layer at z-20) toggles mute state. `onPointerDown` is `stopPropagation`'d to prevent the drag gesture from capturing the tap.
 
 ### Human-baseline defaults
 
@@ -202,11 +204,9 @@ Utility classes:
 
 ## Roadmap
 
-- [ ] **R3F shader background** with category-specific behavior:
-  - Temperature → freeze ⇄ pleasant ⇄ scorching
-  - Weight → density / shadow weight increases toward 150 kg
-  - Length → human-scale ⇄ vehicular/infinite at >10 m
-  - Volume → fluid sloshing fill, 0 → 5 L
+- [ ] **R3F shader background** — `@react-three/fiber` installed but not wired. Per-category behavior: Temperature freeze→scorching, Weight density/shadow, Length human-scale→vehicular, Volume fluid sloshing fill.
+- [x] **Context-aware motion pipeline** — CSS custom properties driven by Framer Motion springs: LCD color (temperature), liquid fill (volume), shadow weight (weight), ruler ticks (length)
+- [x] **Mute toggle** — recessed center button on the dial
 - [x] **PWA basics** — manifest + SVG app icon + first-visit install prompt (iOS/Android)
 - [ ] **PWA caching** — Workbox cache-first service worker
 - [ ] **Tweaks panel** — runtime swatches / tone / dial style (stretch)

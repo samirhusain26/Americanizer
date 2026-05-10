@@ -47,9 +47,28 @@ npm run typecheck
 
 Both value rows render the same `ValueRow` component. `Americanizer` holds local `zone: "from" | "to"` state; the active row gets the LCD ring (`.lcd[data-active="true"]`), the blinking caret in `NumberDisplay`, and receives all dial deltas. Zone is **not** persisted — it's a UI affordance. Tap a row to activate it; tapping the number itself or the unit pill is `stopPropagation`'d so it triggers the keypad / drawer instead of the activate handler.
 
+## Context-aware motion pipeline (`Americanizer.tsx`)
+
+The `fromVal` feeds a Framer Motion spring (`useSpring`) → per-category `useTransform` chains → CSS custom properties published on `<main>`. No React state updates; the whole pipeline is a motion value graph.
+
+| Custom property | Driven by | Effect |
+|---|---|---|
+| `--lcd-bg` | temp/weight/volume/length | LCD plate background (color shift, liquid fill, ruler ticks) |
+| `--lcd-inner-shadow` | temp, weight | inset shadow sharpens with heat / mass |
+| `--shadow-hard` | weight kg | hard-shadow offset: 2 px at 0 kg, 12 px at 150 kg |
+| `--dyn-caret-w` | length meters | caret width 1–8 px on log scale |
+| `--rule-size` | length meters | ruler grid spacing 10–100 px |
+| `--rule-opacity` | length category | 0 unless in Length mode |
+| `--pool-shadow` | volume liters | amber inset pool shadow builds to 5 L |
+| `--dial-lift-x/y` | weight kg | dial plinth offset mirrors shadow offset |
+
+CSS consumers live in `.lcd`, `.canvas-grid::before`, `.chassis-pool`, and the `.chip` classes — they reference the custom properties so they react automatically without prop-drilling.
+
 ## Haptics
 
-`lib/haptics.ts` exports a single `clickHaptic(intensity?)`. Implementation is a Web Audio square-wave click; designed to be swapped 1:1 with a Capacitor haptic plugin in native shells. Don't inline `AudioContext` calls in components — go through this shim.
+`lib/haptics.ts` exports `clickHaptic(intensity?)` and `toggleMute()`. Implementation is a Web Audio square-wave click; designed to be swapped 1:1 with a Capacitor haptic plugin in native shells. Don't inline `AudioContext` calls in components — go through this shim.
+
+The **mute button** is a recessed center circle in `ScrubDial.tsx` (z-index 30, above the drag capture layer at z-20). It calls `toggleMute()` on click; `onPointerDown` is `stopPropagation`'d so pointer-capture on the drag layer can't steal the tap.
 
 ## Files to know
 

@@ -89,12 +89,13 @@ export default function ScrubDial({ value, onDelta, size = 260 }: ScrubDialProps
   const rotDeg = useTransform(totalRot, (r) => (r * 180) / Math.PI);
   const joltCssY = useTransform(jolt, [0, 1], [0, -1]);
 
-  // Precompute knurl tick count CSS for the rim
+  // Knurled rim: crisp alternating dark/light radial teeth
   const knurlBg = useMemo(
     () =>
       "repeating-conic-gradient(from 0deg," +
-      "rgba(20,20,15,0.55) 0deg 1.1deg," +
-      "rgba(255,255,255,0.65) 1.1deg 2.2deg)",
+      "#1a1a14 0deg 3deg," +
+      "#6a6a60 3deg 4deg," +
+      "#2a2a22 4deg 6deg)",
     []
   );
 
@@ -113,114 +114,136 @@ export default function ScrubDial({ value, onDelta, size = 260 }: ScrubDialProps
           aria-hidden
           className="absolute rounded-full"
           style={{
-            left: 6,
-            top: 10,
+            left: 4,
+            top: 12,
             width: size,
             height: size,
-            background: "rgba(20,20,15,0.18)",
-            filter: "blur(10px)",
+            background: "rgba(20,20,15,0.28)",
+            filter: "blur(14px)",
           }}
         />
 
-        {/* Outer bezel (metal rim with knurl) */}
-        <div
-          className="absolute inset-0 rounded-full"
-          style={{
-            background: knurlBg,
-            border: "1.5px solid var(--color-ink)",
-            boxShadow:
-              "inset 0 2px 2px rgba(255,255,255,0.7)," +
-              "inset 0 -3px 3px rgba(0,0,0,0.35)," +
-              "0 4px 0 #14140f",
-          }}
-        />
-
-        {/* Rotating layer (knurl shimmer + indicator) */}
+        {/* Rotating outer knurled rim */}
         <motion.div
           className="absolute inset-0 rounded-full"
           style={{
             rotate: rotDeg,
-            background:
-              "conic-gradient(from 0deg," +
-              "rgba(255,255,255,0.0) 0deg," +
-              "rgba(255,255,255,0.25) 40deg," +
-              "rgba(0,0,0,0.15) 90deg," +
-              "rgba(255,255,255,0.0) 180deg," +
-              "rgba(255,255,255,0.25) 220deg," +
-              "rgba(0,0,0,0.15) 270deg," +
-              "rgba(255,255,255,0.0) 360deg)",
-            mixBlendMode: "overlay",
-          }}
-        >
-          {/* Indicator pip (travels with rotation, sits at 12 o'clock base) */}
-          <div
-            aria-hidden
-            className="absolute rounded-full"
-            style={{
-              left: "50%",
-              top: "8%",
-              width: 14,
-              height: 14,
-              transform: "translateX(-50%)",
-              background: "var(--color-orange)",
-              border: "1.5px solid var(--color-ink)",
-              boxShadow:
-                "inset 0 1px 0 rgba(255,255,255,0.55)," +
-                "inset 0 -2px 2px rgba(0,0,0,0.35)",
-            }}
-          />
-        </motion.div>
-
-        {/* Inset cap (non-rotating face) */}
-        <div
-          className="absolute rounded-full"
-          style={{
-            inset: "16%",
-            background:
-              "radial-gradient(circle at 35% 30%," +
-              " #ffffff 0%," +
-              " #efeee8 18%," +
-              " #d8d7d1 55%," +
-              " #bdbcb4 100%)",
+            background: knurlBg,
             boxShadow:
-              "inset 0 3px 4px rgba(255,255,255,0.75)," +
-              "inset 0 -6px 10px rgba(0,0,0,0.35)," +
-              "0 1px 0 rgba(255,255,255,0.6)",
-            border: "1.5px solid rgba(20,20,15,0.35)",
+              "inset 0 2px 3px rgba(255,255,255,0.35)," +
+              "inset 0 -3px 6px rgba(0,0,0,0.55)",
           }}
         />
 
-        {/* Center dimple */}
+        {/* Outer bezel outline + radial shading (non-rotating) */}
         <div
-          className="absolute rounded-full"
+          aria-hidden
+          className="absolute inset-0 rounded-full pointer-events-none"
           style={{
-            left: "50%",
-            top: "50%",
-            width: "18%",
-            height: "18%",
-            transform: "translate(-50%,-50%)",
-            background:
-              "radial-gradient(circle at 50% 60%," +
-              " #c9c8c0 0%," +
-              " #e5e4de 60%," +
-              " #f0efe9 100%)",
+            border: "1.5px solid var(--color-ink)",
             boxShadow:
-              "inset 0 2px 3px rgba(0,0,0,0.35)," +
-              "inset 0 -1px 1px rgba(255,255,255,0.6)",
-            border: "1px solid rgba(20,20,15,0.25)",
+              "0 6px 0 #14140f," +
+              "0 10px 22px rgba(0,0,0,0.22)",
+            background:
+              "radial-gradient(circle at 50% 30%," +
+              " rgba(255,255,255,0.35) 0%," +
+              " rgba(255,255,255,0) 45%)," +
+              "radial-gradient(circle at 50% 85%," +
+              " rgba(0,0,0,0.35) 0%," +
+              " rgba(0,0,0,0) 40%)",
           }}
         />
 
-        {/* Gloss highlight arc */}
+        {/* Inner recessed ring (divides rim from cap) */}
         <div
           aria-hidden
           className="absolute rounded-full pointer-events-none"
           style={{
-            inset: "18%",
+            inset: "13%",
+            background: "#14140f",
+            boxShadow:
+              "inset 0 2px 3px rgba(0,0,0,0.8)," +
+              "inset 0 -1px 0 rgba(255,255,255,0.08)",
+          }}
+        />
+
+        {/* Inset cap (non-rotating face) */}
+        <div
+          aria-hidden
+          className="absolute rounded-full pointer-events-none"
+          style={{
+            inset: "15%",
             background:
-              "radial-gradient(ellipse 70% 30% at 50% 10%," +
-              " rgba(255,255,255,0.7) 0%," +
-              " rgba(255,255,255,0) 70%)",
+              "radial-gradient(circle at 35% 28%," +
+              " #fafaf6 0%," +
+              " #ecebe4 22%," +
+              " #cfcec6 60%," +
+              " #a9a89f 100%)",
+            boxShadow:
+              "inset 0 4px 6px rgba(255,255,255,0.85)," +
+              "inset 0 -10px 16px rgba(0,0,0,0.3)",
+            border: "1px solid rgba(20,20,15,0.5)",
+          }}
+        />
+
+        {/* Rotating indicator line on cap */}
+        <motion.div
+          className="absolute pointer-events-none"
+          style={{
+            inset: "15%",
+            rotate: rotDeg,
+          }}
+          aria-hidden
+        >
+          <div
+            style={{
+              position: "absolute",
+              left: "50%",
+              top: "6%",
+              width: 4,
+              height: "22%",
+              transform: "translateX(-50%)",
+              background: "var(--color-orange)",
+              borderRadius: 2,
+              border: "1px solid var(--color-ink)",
+              boxShadow: "0 1px 0 rgba(255,255,255,0.4)",
+            }}
+          />
+        </motion.div>
+
+        {/* Center dimple */}
+        <div
+          aria-hidden
+          className="absolute rounded-full pointer-events-none"
+          style={{
+            left: "50%",
+            top: "50%",
+            width: "22%",
+            height: "22%",
+            transform: "translate(-50%,-50%)",
+            background:
+              "radial-gradient(circle at 50% 65%," +
+              " #b8b7af 0%," +
+              " #d6d5cd 55%," +
+              " #eceae3 100%)",
+            boxShadow:
+              "inset 0 3px 4px rgba(0,0,0,0.45)," +
+              "inset 0 -1px 2px rgba(255,255,255,0.7)," +
+              "0 1px 0 rgba(255,255,255,0.5)",
+            border: "1px solid rgba(20,20,15,0.4)",
+          }}
+        />
+
+        {/* Top gloss highlight on cap */}
+        <div
+          aria-hidden
+          className="absolute rounded-full pointer-events-none"
+          style={{
+            inset: "17%",
+            background:
+              "radial-gradient(ellipse 65% 28% at 50% 12%," +
+              " rgba(255,255,255,0.8) 0%," +
+              " rgba(255,255,255,0) 75%)",
           }}
         />
 

@@ -41,8 +41,17 @@ export default function NumberDisplay({ formatted, rawValue, onCommit, className
       <input
         ref={inputRef}
         aria-label="Edit value"
+        type="text"
         inputMode="decimal"
         pattern="[0-9.\-]*"
+        name="converter-amount"
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
+        data-1p-ignore
+        data-lpignore="true"
+        data-form-type="other"
         value={editing ? buf : ""}
         onFocus={() => setEditing(true)}
         onChange={(e) => setBuf(sanitize(e.target.value))}

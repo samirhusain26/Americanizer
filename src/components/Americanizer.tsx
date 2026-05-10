@@ -340,6 +340,18 @@ export default function Americanizer() {
 
       <CategoryDock active={current.category} onChange={setActive} />
 
+      <footer className="mt-6 mb-4 flex justify-center">
+        <a
+          href="https://samirhusain.info"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="ui-mono text-[10px] tracking-[0.18em] uppercase underline underline-offset-2"
+          style={{ color: "var(--color-ink-soft)" }}
+        >
+          About the developer
+        </a>
+      </footer>
+
       <UnitDrawer
         open={drawer === "from"}
         onOpenChange={(o) => setDrawer(o ? "from" : null)}

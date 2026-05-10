@@ -108,18 +108,9 @@ export default function InstallPrompt() {
             </div>
 
             <div
-              className="px-6 py-4 flex items-center justify-between gap-3 border-t-2"
+              className="px-6 py-4 flex items-center justify-end gap-3 border-t-2"
               style={{ borderColor: "var(--color-ink)", background: "var(--color-shell-2)" }}
             >
-              <a
-                href="https://samirhusain.info"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="ui-mono text-[11px] tracking-[0.14em] uppercase underline underline-offset-2"
-                style={{ color: "var(--color-ink-soft)" }}
-              >
-                About the developer
-              </a>
               <button
                 type="button"
                 onClick={dismiss}

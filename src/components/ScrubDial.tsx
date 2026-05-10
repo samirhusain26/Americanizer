@@ -2,7 +2,10 @@
 
 import { useDrag } from "@use-gesture/react";
 import { motion, useMotionValue, useTransform } from "framer-motion";
-import { useCallback, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { Environment, ContactShadows } from "@react-three/drei";
+import * as THREE from "three";
 import { clickHaptic } from "@/lib/haptics";
 
 interface ScrubDialProps {
@@ -18,7 +21,131 @@ function stepFromVelocity(vAbs: number): number {
   return 100;
 }
 
-export default function ScrubDial({ value, onDelta, size = 240 }: ScrubDialProps) {
+/* ---------- Knob mesh ---------- */
+
+/**
+ * Lathed profile for the knob body: a short cylinder with a top bevel,
+ * skirt, and base. Returned as a LatheGeometry-compatible point list.
+ */
+function useKnobProfile() {
+  return useMemo(() => {
+    // x = radius, y = height (along axis)
+    // Assembled bottom→top.
+    const pts: THREE.Vector2[] = [
+      new THREE.Vector2(0.0,  -0.24),
+      new THREE.Vector2(0.90, -0.24),
+      new THREE.Vector2(0.98, -0.22),
+      new THREE.Vector2(1.00, -0.18),
+      new THREE.Vector2(1.00,  0.12),   // straight skirt (knurled area)
+      new THREE.Vector2(0.96,  0.16),   // top bevel in
+      new THREE.Vector2(0.88,  0.19),
+      new THREE.Vector2(0.80,  0.20),   // top face outer
+      new THREE.Vector2(0.00,  0.20),   // top face center
+    ];
+    return pts;
+  }, []);
+}
+
+function KnurledRim({ radius = 1.0, height = 0.30, yCenter = -0.03, teeth = 120 }) {
+  // Thin cylinder of tiny teeth covering the skirt area — gives real
+  // knurled silhouette (not just a texture).
+  const group = useRef<THREE.Group>(null);
+  const toothGeom = useMemo(() => new THREE.BoxGeometry(0.022, height, 0.022), [height]);
+  const toothMat = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: new THREE.Color("#e8e8e2"),
+        metalness: 0.15,
+        roughness: 0.55,
+      }),
+    []
+  );
+
+  return (
+    <group ref={group} position={[0, yCenter, 0]}>
+      {Array.from({ length: teeth }).map((_, i) => {
+        const a = (i / teeth) * Math.PI * 2;
+        const x = Math.cos(a) * radius;
+        const z = Math.sin(a) * radius;
+        return (
+          <mesh key={i} position={[x, 0, z]} rotation={[0, -a, 0]} geometry={toothGeom} material={toothMat} />
+        );
+      })}
+    </group>
+  );
+}
+
+function Knob({ rotationY, joltY }: { rotationY: { get: () => number }; joltY: { get: () => number } }) {
+  const group = useRef<THREE.Group>(null);
+  const profile = useKnobProfile();
+  const lathe = useMemo(() => new THREE.LatheGeometry(profile, 96), [profile]);
+  const body = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: new THREE.Color("#f2f1ec"),
+        metalness: 0.1,
+        roughness: 0.42,
+      }),
+    []
+  );
+  const cap = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: new THREE.Color("#e2e1dc"),
+        metalness: 0.25,
+        roughness: 0.35,
+      }),
+    []
+  );
+  const indicator = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: new THREE.Color("#ff5a1f"),
+        metalness: 0.0,
+        roughness: 0.45,
+        emissive: new THREE.Color("#ff5a1f"),
+        emissiveIntensity: 0.12,
+      }),
+    []
+  );
+
+  useFrame(() => {
+    if (!group.current) return;
+    const r = typeof rotationY.get === "function" ? rotationY.get() : 0;
+    group.current.rotation.y = r;
+    group.current.position.y = joltY.get() * -0.015;
+  });
+
+  return (
+    <group ref={group}>
+      {/* Body (lathed) */}
+      <mesh geometry={lathe} material={body} castShadow receiveShadow />
+      {/* Top inset cap */}
+      <mesh position={[0, 0.201, 0]} rotation={[-Math.PI / 2, 0, 0]} castShadow receiveShadow material={cap}>
+        <circleGeometry args={[0.55, 64]} />
+      </mesh>
+      {/* Center dimple (slight recess) */}
+      <mesh position={[0, 0.195, 0]} rotation={[-Math.PI / 2, 0, 0]} material={cap}>
+        <ringGeometry args={[0.14, 0.16, 64]} />
+      </mesh>
+      {/* Knurled rim */}
+      <KnurledRim radius={1.005} height={0.28} yCenter={-0.02} teeth={140} />
+      {/* Orange indicator pill on top face */}
+      <mesh position={[0, 0.206, -0.7]} rotation={[-Math.PI / 2, 0, 0]} castShadow material={indicator}>
+        <circleGeometry args={[0.07, 32]} />
+      </mesh>
+      {/* Indicator housing — subtle raised ring */}
+      <mesh position={[0, 0.207, -0.7]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.075, 0.09, 32]} />
+        <meshStandardMaterial color="#14140f" metalness={0.2} roughness={0.6} />
+      </mesh>
+    </group>
+  );
+}
+
+/* ---------- Outer component ---------- */
+
+export default function ScrubDial({ value, onDelta, size = 260 }: ScrubDialProps) {
   const lastDetentBucket = useRef(0);
   const PX_PER_DETENT = 12;
 
@@ -45,122 +172,74 @@ export default function ScrubDial({ value, onDelta, size = 240 }: ScrubDialProps
         const step = stepFromVelocity(v);
         const sign = detents > 0 ? 1 : -1;
         onDelta(sign * Math.abs(detents) * step);
-        rotation.set(rotation.get() + sign * 18);
+        rotation.set(rotation.get() + sign * (Math.PI / 10));
         tickJolt();
         clickHaptic(Math.min(1, 0.3 + v * 0.3));
       }
-      if (last) rotation.set(0);
+      if (last) {
+        // keep current rotation; don't snap — value-driven rest angle is used visually
+      }
     },
     { axis: undefined, filterTaps: true, pointer: { capture: true } }
   );
 
-  const restAngle = ((value % 36) / 36) * 360;
-  const joltY = useTransform(jolt, [0, 1], [0, -1]);
+  // Value-driven resting rotation blends with drag rotation.
+  const restRad = ((value % 36) / 36) * Math.PI * 2;
+  const totalRot = useTransform(rotation, (r) => r + restRad);
 
-  const half = size / 2;
+  const joltCssY = useTransform(jolt, [0, 1], [0, -1]);
 
   return (
     <div className="flex items-center justify-center select-none">
       <motion.div
         className="relative touch-none cursor-grab active:cursor-grabbing"
-        style={{ width: size, height: size, y: joltY }}
+        style={{
+          width: size,
+          height: size,
+          y: joltCssY,
+          filter: "drop-shadow(6px 6px 0 #14140f)",
+        }}
       >
-        {/* Drag surface */}
+        {/* Drag capture layer (above canvas so pointer events always land here) */}
         <div {...bind()} className="absolute inset-0 z-20 rounded-full" />
 
-        {/* Hard drop shadow (offset, no blur) */}
-        <div
-          className="absolute rounded-full bg-ink"
+        <Canvas
+          shadows
+          dpr={[1, 2]}
+          camera={{ position: [0, 1.35, 2.3], fov: 32 }}
+          gl={{ antialias: true, alpha: true }}
           style={{
-            inset: 0,
-            transform: "translate(6px, 6px)",
-            background: "var(--color-ink)",
-          }}
-        />
-
-        {/* Outer bezel — chunky white ring */}
-        <div
-          className="absolute inset-0 rounded-full"
-          style={{
-            background: "var(--color-shell)",
-            border: "1.5px solid var(--color-ink)",
-          }}
-        />
-
-        {/* Knurled ring */}
-        <div
-          className="absolute rounded-full knurl"
-          style={{
-            inset: "6%",
-            border: "1.5px solid var(--color-ink)",
-            maskImage:
-              "radial-gradient(circle, transparent 58%, #000 58.5%, #000 100%)",
-            WebkitMaskImage:
-              "radial-gradient(circle, transparent 58%, #000 58.5%, #000 100%)",
-          }}
-        />
-
-        {/* Tick marks on inner chassis */}
-        <svg
-          viewBox={`-${half} -${half} ${size} ${size}`}
-          className="absolute inset-0 w-full h-full pointer-events-none"
-        >
-          {Array.from({ length: 48 }).map((_, i) => {
-            const angle = (i / 48) * Math.PI * 2 - Math.PI / 2;
-            const major = i % 4 === 0;
-            const r1 = half * 0.58;
-            const r2 = half * (major ? 0.50 : 0.54);
-            const x1 = Math.cos(angle) * r1;
-            const y1 = Math.sin(angle) * r1;
-            const x2 = Math.cos(angle) * r2;
-            const y2 = Math.sin(angle) * r2;
-            return (
-              <line
-                key={i}
-                x1={x1} y1={y1} x2={x2} y2={y2}
-                stroke="var(--color-ink)"
-                strokeWidth={major ? 1.5 : 0.8}
-                strokeLinecap="square"
-              />
-            );
-          })}
-        </svg>
-
-        {/* Inner rotating disc — off-white face */}
-        <motion.div
-          className="absolute rounded-full"
-          style={{
-            inset: "20%",
-            background: "var(--color-shell-2)",
-            border: "1.5px solid var(--color-ink)",
-            rotate: restAngle,
-            boxShadow: "inset 0 2px 0 rgba(255,255,255,0.6), inset 0 -2px 0 rgba(0,0,0,0.08)",
+            borderRadius: 9999,
+            background:
+              "radial-gradient(circle at 50% 45%, #f4f4f0 0%, #e6e6df 65%, #d6d6cd 100%)",
+            border: "1.5px solid #14140f",
           }}
         >
-          {/* Orange indicator dot (TE signature) */}
-          <div
-            className="absolute"
-            style={{
-              left: "50%",
-              top: "8%",
-              width: 14,
-              height: 14,
-              transform: "translateX(-50%)",
-              borderRadius: 999,
-              background: "var(--color-orange)",
-              border: "1.5px solid var(--color-ink)",
-            }}
+          {/* Studio lighting */}
+          <ambientLight intensity={0.55} />
+          <directionalLight
+            position={[3, 4, 2]}
+            intensity={1.6}
+            castShadow
+            shadow-mapSize-width={1024}
+            shadow-mapSize-height={1024}
           />
-          {/* Center hub */}
-          <div
-            className="absolute rounded-full"
-            style={{
-              inset: "32%",
-              background: "var(--color-shell-3)",
-              border: "1.5px solid var(--color-ink)",
-            }}
+          <directionalLight position={[-3, 2, -2]} intensity={0.55} color={"#cfe4ff"} />
+          <pointLight position={[0, 2, 2]} intensity={0.35} />
+
+          <Environment preset="studio" environmentIntensity={0.6} />
+
+          <Knob rotationY={totalRot} joltY={jolt} />
+
+          <ContactShadows
+            position={[0, -0.25, 0]}
+            opacity={0.55}
+            scale={4}
+            blur={1.8}
+            far={2}
+            color="#14140f"
           />
-        </motion.div>
+        </Canvas>
       </motion.div>
     </div>
   );

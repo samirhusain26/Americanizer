@@ -52,6 +52,7 @@ src/
     UnitDrawer.tsx      Vaul bottom-sheet with metric/us tags
     SwapButton.tsx      Reverses from/to with 180° tap rotate
     CategoryDock.tsx    Segmented Temp/Weight/Length/Volume control
+    InstallPrompt.tsx   First-visit modal with iOS + Android A2HS instructions
   lib/
     units.ts            Category + unit definitions, convert()
     format.ts           Display formatting (incl. culinary fractions)
@@ -70,6 +71,9 @@ _design_reference/      Original Claude Design HTML/JSX prototype
 3. **Zone 2 — Engine.** Single skeuomorphic scrub dial + swap button. The dial drives whichever zone is currently active.
 4. **Zone 3 — To `ValueRow`.** Same component as Zone 1; tap to make it the active zone.
 5. **Dock.** Segmented control for Temperature / Weight / Length / Volume — flat hard-shadow chips, no layout animation.
+6. **Footer.** A small `about the developer` link to [samirhusain.info](https://samirhusain.info), centered below the dock.
+
+An `InstallPrompt` modal surfaces on the first visit (desktop-centered, mobile bottom-sheet-style). It platform-detects iOS vs Android and highlights the matching A2HS instructions; dismissal is remembered in `localStorage` under `americanizer:install-seen` and the modal skips itself when the app is already running as an installed PWA.
 
 Both value rows share the `ValueRow` component (`Americanizer.tsx`). The active zone is local UI state in `Americanizer`; the store has no notion of it.
 
@@ -203,7 +207,8 @@ Utility classes:
   - Weight → density / shadow weight increases toward 150 kg
   - Length → human-scale ⇄ vehicular/infinite at >10 m
   - Volume → fluid sloshing fill, 0 → 5 L
-- [ ] **PWA** — manifest, icons, Workbox cache-first SW
+- [x] **PWA basics** — manifest + SVG app icon + first-visit install prompt (iOS/Android)
+- [ ] **PWA caching** — Workbox cache-first service worker
 - [ ] **Tweaks panel** — runtime swatches / tone / dial style (stretch)
 - [ ] Capacitor wrapper for App Store / Play Store, real haptics
 

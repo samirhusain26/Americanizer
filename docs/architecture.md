@@ -17,6 +17,8 @@ A short tour through how the pieces fit. For setup and stack, see the [README](.
     <CategoryDock />                     Flat hard-shadow segmented control
     <UnitDrawer side="from" />           Vaul bottom sheet, accent-tinted
     <UnitDrawer side="to"   />
+    <footer>                             Small "about the developer" link → samirhusain.info
+  <InstallPrompt />                      First-visit A2HS modal (iOS + Android)
 ```
 
 `Americanizer` owns two pieces of local UI state:
@@ -25,6 +27,8 @@ A short tour through how the pieces fit. For setup and stack, see the [README](.
 - `zone: "from" | "to"` — which value row the dial is currently editing.
 
 Everything else comes from the Zustand store. The active zone deliberately does **not** live in the store — it's a UI affordance, not user-facing state worth persisting.
+
+`InstallPrompt` is a sibling of `Americanizer` mounted from `app/page.tsx`. It owns its own open/dismissed state and reads/writes `localStorage["americanizer:install-seen"]` directly — it has no dependency on the converter store.
 
 ## State flow
 

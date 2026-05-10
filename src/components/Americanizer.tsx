@@ -340,15 +340,15 @@ export default function Americanizer() {
 
       <CategoryDock active={current.category} onChange={setActive} />
 
-      <footer className="mt-6 mb-4 flex justify-center">
+      <footer className="mt-3 mb-2 flex justify-center">
         <a
           href="https://samirhusain.info"
           target="_blank"
           rel="noopener noreferrer"
-          className="ui-mono text-[10px] tracking-[0.18em] uppercase underline underline-offset-2"
+          className="ui-mono text-[9px] tracking-[0.12em] opacity-60 hover:opacity-100 transition-opacity"
           style={{ color: "var(--color-ink-soft)" }}
         >
-          About the developer
+          about the developer
         </a>
       </footer>
 

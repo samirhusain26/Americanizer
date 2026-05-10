@@ -12,6 +12,9 @@
 | Swap button                 | Reverses from/to (180° rotate animation, accent-colored arrow) |
 | Dock segment                | Switches active category (no layout animation; flat hard-shadow chip) |
 | Drawer "CLOSE ✕"            | Dismisses the bottom sheet                                |
+| Footer link                 | Opens samirhusain.info in a new tab                       |
+| Install modal backdrop      | Dismisses the first-visit install modal                   |
+| Install modal "Got it"      | Dismisses and marks `americanizer:install-seen`           |
 
 The dial does **not** know about from/to — it just emits `onDelta`. `Americanizer.onScrub` checks the active zone and routes to `setValue("from", …)` or `setValue("to", …)`.
 
@@ -76,6 +79,15 @@ If the nearest match is `0` or `1`, the whole part is adjusted accordingly (no `
 ## Active-zone caret
 
 When a value row is the active zone and not being edited, `NumberDisplay` appends a 3 px wide block caret in the active accent color. It blinks at ~0.9 Hz via the `lcd-blink` keyframe (50%/50% steps, no fade — the LCD vibe). The caret is purely cosmetic; it disappears the moment the input is focused.
+
+## First-visit install prompt
+
+On first load, `InstallPrompt` (`src/components/InstallPrompt.tsx`) mounts a modal with platform-aware Add-to-Home-Screen instructions.
+
+- Skipped if `window.matchMedia("(display-mode: standalone)")` matches, or (iOS) `navigator.standalone === true` — the app is already installed.
+- Skipped if `localStorage["americanizer:install-seen"]` is set.
+- Platform detected from `navigator.userAgent`; the matching block (iOS Safari or Android Chrome) is highlighted with the lime accent and a `— detected` marker.
+- Tapping the backdrop or the `Got it` button sets `americanizer:install-seen` and closes the modal. The developer link is **not** in the modal — it lives in the site footer below the dock.
 
 ## Keyboard
 

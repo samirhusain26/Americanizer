@@ -58,6 +58,8 @@ Both value rows render the same `ValueRow` component. `Americanizer` holds local
 - `src/store/converter.ts` — store, persist config, `selectActive`, `selectCategoryState`.
 - `src/lib/units.ts` — categories & convert().
 - `src/lib/format.ts` — culinary fractions, number formatting.
+- `src/components/InstallPrompt.tsx` — first-visit A2HS modal (iOS + Android steps, platform-detected highlight); dismissal persisted under `americanizer:install-seen`.
+- `public/manifest.webmanifest` + `public/icon.svg` + `src/app/icon.svg` — PWA manifest and app/favicon mark.
 - `_design_reference/` — original Claude Design HTML/JSX prototype. Read for visual intent; not built.
 
 ## Conventions

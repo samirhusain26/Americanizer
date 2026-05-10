@@ -100,3 +100,7 @@ Stored shape (after `partialize`):
 ```
 
 When making a breaking change to this shape (renaming a unit, removing a category, changing what `value` means), bump the key to `:v2` rather than writing a migration — the user-facing data here is trivially re-creatable.
+
+## Unrelated localStorage keys
+
+The `InstallPrompt` component uses its own key, `americanizer:install-seen`, which is orthogonal to the converter store and not touched by `partialize`. Clearing it re-shows the first-visit install modal.

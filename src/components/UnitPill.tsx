@@ -25,16 +25,21 @@ export default function UnitPill({
       type="button"
       onClick={onClick}
       className={clsx(
-        "ui-mono uppercase tracking-[0.08em] font-semibold",
-        "px-2.5 py-2 rounded-xl",
+        "ui-mono uppercase tracking-[0.1em] font-semibold",
+        "px-3 py-1.5 rounded-full",
         "chip chip-press transition-[transform,box-shadow] duration-75",
-        "flex flex-col items-center gap-1 text-[11px] leading-none",
+        "inline-flex items-center gap-1.5 text-[11px] leading-none",
         className
       )}
     >
+      <span
+        className="w-2 h-2 rounded-full shrink-0"
+        style={{ background: accentColor, border: "1px solid var(--color-ink)" }}
+      />
+      <span>{label}</span>
       {symbol ? (
         <span
-          className="px-1.5 py-0.5 rounded-md text-[13px] tracking-[0.03em] font-bold"
+          className="px-1 py-0.5 rounded text-[10px] tracking-[0.03em] font-bold"
           style={{
             background: "var(--color-ink)",
             color: "var(--color-shell)",
@@ -42,13 +47,7 @@ export default function UnitPill({
         >
           {symbol}
         </span>
-      ) : (
-        <span
-          className="w-2 h-2 rounded-full"
-          style={{ background: accentColor, border: "1px solid var(--color-ink)" }}
-        />
-      )}
-      <span className="text-[10px]">{label}</span>
+      ) : null}
     </button>
   );
 }

@@ -53,7 +53,7 @@ export default function Americanizer() {
 
   return (
     <main
-      className="relative min-h-[100dvh] flex flex-col overflow-hidden"
+      className="relative h-[100dvh] flex flex-col overflow-hidden"
       style={{ background: "var(--color-shell)", color: "var(--color-ink)" }}
     >
       {/* Chassis header */}
@@ -76,65 +76,61 @@ export default function Americanizer() {
       </header>
 
       {/* Zone 1 — FROM screen */}
-      <section className="px-4 pt-3 pb-2 rule-b">
+      <section className="px-4 pt-3 pb-2 rule-b shrink-0">
+        <div className="flex items-center justify-between mb-1.5 px-1">
+          <span className="ui-mono uppercase text-[9px] tracking-[0.28em] text-[color:var(--color-ink-soft)]">FROM</span>
+          <UnitPill
+            label={fromLabel}
+            symbol={fromSymbol}
+            onClick={() => setDrawer("from")}
+            accent={accent}
+          />
+        </div>
         <div
-          className="lcd rounded-2xl pl-4 pr-3 py-3 relative"
+          className="lcd rounded-2xl px-4 py-2"
           style={{ border: "1.5px solid var(--color-ink)" }}
         >
-          <div className="flex items-center gap-3">
-            <div className="flex-1 min-w-0">
-              <NumberDisplay
-                className="text-[4.5rem] sm:text-[6rem] leading-none"
-                formatted={fromText}
-                rawValue={current.fromVal}
-                onCommit={(n) => setValue("from", n)}
-              />
-            </div>
-            <UnitPill
-              label={fromLabel}
-              symbol={fromSymbol}
-              onClick={() => setDrawer("from")}
-              accent={accent}
-              className="shrink-0"
-            />
-          </div>
+          <NumberDisplay
+            className="text-[4.5rem] sm:text-[6rem] leading-none"
+            formatted={fromText}
+            rawValue={current.fromVal}
+            onCommit={(n) => setValue("from", n)}
+          />
         </div>
       </section>
 
       {/* Zone 2 — engine */}
       <section
-        className="flex items-center justify-center gap-5 py-3 rule-b relative"
+        className="flex-1 min-h-0 flex items-center justify-center py-2 rule-b relative"
         style={{ background: "var(--color-shell-2)" }}
       >
-        <ScrubDial value={current.fromVal} onDelta={(d) => setValue("from", current.fromVal + d)} size={160} />
+        <ScrubDial value={current.fromVal} onDelta={(d) => setValue("from", current.fromVal + d)} size={140} />
         <div className="absolute right-4 top-1/2 -translate-y-1/2">
           <SwapButton onSwap={swap} />
         </div>
       </section>
 
       {/* Zone 3 — TO screen */}
-      <section className="px-4 pt-2 pb-3 rule-b">
+      <section className="px-4 pt-2 pb-3 rule-b shrink-0">
+        <div className="flex items-center justify-between mb-1.5 px-1">
+          <span className="ui-mono uppercase text-[9px] tracking-[0.28em] text-[color:var(--color-ink-soft)]">TO</span>
+          <UnitPill
+            label={toLabel}
+            symbol={toSymbol}
+            onClick={() => setDrawer("to")}
+            accent={accent}
+          />
+        </div>
         <div
-          className="lcd rounded-2xl pl-4 pr-3 py-3 relative"
+          className="lcd rounded-2xl px-4 py-2"
           style={{ border: "1.5px solid var(--color-ink)" }}
         >
-          <div className="flex items-center gap-3">
-            <div className="flex-1 min-w-0">
-              <NumberDisplay
-                className="text-[4.5rem] sm:text-[6rem] leading-none"
-                formatted={toText}
-                rawValue={current.toVal}
-                onCommit={(n) => setValue("to", n)}
-              />
-            </div>
-            <UnitPill
-              label={toLabel}
-              symbol={toSymbol}
-              onClick={() => setDrawer("to")}
-              accent={accent}
-              className="shrink-0"
-            />
-          </div>
+          <NumberDisplay
+            className="text-[4.5rem] sm:text-[6rem] leading-none"
+            formatted={toText}
+            rawValue={current.toVal}
+            onCommit={(n) => setValue("to", n)}
+          />
         </div>
       </section>
 

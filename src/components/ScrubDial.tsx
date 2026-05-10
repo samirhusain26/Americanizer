@@ -205,7 +205,7 @@ export default function ScrubDial({ value, onDelta, size = 260 }: ScrubDialProps
         <Canvas
           shadows
           dpr={[1, 2]}
-          camera={{ position: [0, 1.35, 2.3], fov: 32 }}
+          camera={{ position: [0, 6, 0.0001], fov: 18 }}
           gl={{ antialias: true, alpha: true }}
           style={{
             borderRadius: 9999,

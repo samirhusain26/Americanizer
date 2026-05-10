@@ -43,8 +43,12 @@ export default function Americanizer() {
   const fromText = formatForUnit(current.category, current.fromUnit, current.fromVal);
   const toText = formatForUnit(current.category, current.toUnit, current.toVal);
 
-  const fromLabel = current.def.units.find((u) => u.id === current.fromUnit)!.label;
-  const toLabel = current.def.units.find((u) => u.id === current.toUnit)!.label;
+  const fromUnitDef = current.def.units.find((u) => u.id === current.fromUnit)!;
+  const toUnitDef = current.def.units.find((u) => u.id === current.toUnit)!;
+  const fromLabel = fromUnitDef.longLabel;
+  const toLabel = toUnitDef.longLabel;
+  const fromSymbol = fromUnitDef.label;
+  const toSymbol = toUnitDef.label;
   const accent = ACCENT_BY_CATEGORY[current.category];
 
   return (
@@ -73,11 +77,13 @@ export default function Americanizer() {
 
       {/* Zone 1 — FROM screen */}
       <section className="px-5 pt-5 pb-5 rule-b">
-        <div className="flex items-center justify-between mb-2">
-          <span className="ui-mono uppercase text-[10px] tracking-[0.28em] text-[color:var(--color-ink-soft)]">
-            INPUT / FROM
-          </span>
-          <UnitPill label={fromLabel} onClick={() => setDrawer("from")} accent={accent} />
+        <div className="flex items-center justify-end mb-2">
+          <UnitPill
+            label={fromLabel}
+            symbol={fromSymbol}
+            onClick={() => setDrawer("from")}
+            accent={accent}
+          />
         </div>
         <div
           className="lcd rounded-2xl px-5 py-5"
@@ -108,11 +114,13 @@ export default function Americanizer() {
 
       {/* Zone 3 — TO screen */}
       <section className="px-5 pt-5 pb-5 rule-b">
-        <div className="flex items-center justify-between mb-2">
-          <span className="ui-mono uppercase text-[10px] tracking-[0.28em] text-[color:var(--color-ink-soft)]">
-            OUTPUT / TO
-          </span>
-          <UnitPill label={toLabel} onClick={() => setDrawer("to")} accent={accent} />
+        <div className="flex items-center justify-end mb-2">
+          <UnitPill
+            label={toLabel}
+            symbol={toSymbol}
+            onClick={() => setDrawer("to")}
+            accent={accent}
+          />
         </div>
         <div
           className="lcd rounded-2xl px-5 py-5"
@@ -134,7 +142,7 @@ export default function Americanizer() {
         onOpenChange={(o) => setDrawer(o ? "from" : null)}
         category={current.def}
         selectedUnitId={current.fromUnit}
-        title={`${current.def.label} / FROM`}
+        title={current.def.label}
         onSelect={(id) => setUnit("from", id)}
       />
       <UnitDrawer
@@ -142,7 +150,7 @@ export default function Americanizer() {
         onOpenChange={(o) => setDrawer(o ? "to" : null)}
         category={current.def}
         selectedUnitId={current.toUnit}
-        title={`${current.def.label} / TO`}
+        title={current.def.label}
         onSelect={(id) => setUnit("to", id)}
       />
     </main>

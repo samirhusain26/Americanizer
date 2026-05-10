@@ -3,8 +3,6 @@
 import { useDrag } from "@use-gesture/react";
 import { motion, useMotionValue, useTransform } from "framer-motion";
 import { useCallback, useMemo, useRef } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import * as THREE from "three";
 import { clickHaptic } from "@/lib/haptics";
 
 interface ScrubDialProps {
@@ -20,130 +18,10 @@ function stepFromVelocity(vAbs: number): number {
   return 100;
 }
 
-/* ---------- Knob mesh ---------- */
-
 /**
- * Lathed profile for the knob body: a short cylinder with a top bevel,
- * skirt, and base. Returned as a LatheGeometry-compatible point list.
+ * 2D skeuomorphic knurled knob: stacked radial/conic gradients compose a
+ * metal-rimmed dial with a recessed cap, indicator dot, and subtle shading.
  */
-function useKnobProfile() {
-  return useMemo(() => {
-    // x = radius, y = height (along axis)
-    // Assembled bottom→top.
-    const pts: THREE.Vector2[] = [
-      new THREE.Vector2(0.0,  -0.24),
-      new THREE.Vector2(0.90, -0.24),
-      new THREE.Vector2(0.98, -0.22),
-      new THREE.Vector2(1.00, -0.18),
-      new THREE.Vector2(1.00,  0.12),   // straight skirt (knurled area)
-      new THREE.Vector2(0.96,  0.16),   // top bevel in
-      new THREE.Vector2(0.88,  0.19),
-      new THREE.Vector2(0.80,  0.20),   // top face outer
-      new THREE.Vector2(0.00,  0.20),   // top face center
-    ];
-    return pts;
-  }, []);
-}
-
-function KnurledRim({ radius = 1.0, height = 0.30, yCenter = -0.03, teeth = 120 }) {
-  // Thin cylinder of tiny teeth covering the skirt area — gives real
-  // knurled silhouette (not just a texture).
-  const group = useRef<THREE.Group>(null);
-  const toothGeom = useMemo(() => new THREE.BoxGeometry(0.022, height, 0.022), [height]);
-  const toothMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: new THREE.Color("#e8e8e2"),
-        metalness: 0.15,
-        roughness: 0.55,
-      }),
-    []
-  );
-
-  return (
-    <group ref={group} position={[0, yCenter, 0]}>
-      {Array.from({ length: teeth }).map((_, i) => {
-        const a = (i / teeth) * Math.PI * 2;
-        const x = Math.cos(a) * radius;
-        const z = Math.sin(a) * radius;
-        return (
-          <mesh key={i} position={[x, 0, z]} rotation={[0, -a, 0]} geometry={toothGeom} material={toothMat} />
-        );
-      })}
-    </group>
-  );
-}
-
-function Knob({ rotationY, joltY }: { rotationY: { get: () => number }; joltY: { get: () => number } }) {
-  const group = useRef<THREE.Group>(null);
-  const profile = useKnobProfile();
-  const lathe = useMemo(() => new THREE.LatheGeometry(profile, 96), [profile]);
-  const body = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: new THREE.Color("#f2f1ec"),
-        metalness: 0.1,
-        roughness: 0.42,
-      }),
-    []
-  );
-  const cap = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: new THREE.Color("#e2e1dc"),
-        metalness: 0.25,
-        roughness: 0.35,
-      }),
-    []
-  );
-  const indicator = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: new THREE.Color("#ff5a1f"),
-        metalness: 0.0,
-        roughness: 0.45,
-        emissive: new THREE.Color("#ff5a1f"),
-        emissiveIntensity: 0.12,
-      }),
-    []
-  );
-
-  useFrame(() => {
-    if (!group.current) return;
-    const r = typeof rotationY.get === "function" ? rotationY.get() : 0;
-    group.current.rotation.y = r;
-    group.current.position.y = joltY.get() * -0.015;
-  });
-
-  return (
-    <group ref={group}>
-      {/* Body (lathed) */}
-      <mesh geometry={lathe} material={body} castShadow receiveShadow />
-      {/* Top inset cap */}
-      <mesh position={[0, 0.201, 0]} rotation={[-Math.PI / 2, 0, 0]} castShadow receiveShadow material={cap}>
-        <circleGeometry args={[0.55, 64]} />
-      </mesh>
-      {/* Center dimple (slight recess) */}
-      <mesh position={[0, 0.195, 0]} rotation={[-Math.PI / 2, 0, 0]} material={cap}>
-        <ringGeometry args={[0.14, 0.16, 64]} />
-      </mesh>
-      {/* Knurled rim */}
-      <KnurledRim radius={1.005} height={0.28} yCenter={-0.02} teeth={140} />
-      {/* Orange indicator pill on top face */}
-      <mesh position={[0, 0.206, -0.7]} rotation={[-Math.PI / 2, 0, 0]} castShadow material={indicator}>
-        <circleGeometry args={[0.07, 32]} />
-      </mesh>
-      {/* Indicator housing — subtle raised ring */}
-      <mesh position={[0, 0.207, -0.7]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.075, 0.09, 32]} />
-        <meshStandardMaterial color="#14140f" metalness={0.2} roughness={0.6} />
-      </mesh>
-    </group>
-  );
-}
-
-/* ---------- Outer component ---------- */
-
 export default function ScrubDial({ value, onDelta, size = 260 }: ScrubDialProps) {
   const lastDetentBucket = useRef(0);
   const PX_PER_DETENT = 12;
@@ -159,7 +37,7 @@ export default function ScrubDial({ value, onDelta, size = 260 }: ScrubDialProps
   }, [jolt]);
 
   const bind = useDrag(
-    ({ first, last, movement: [mx, my], velocity: [vx, vy] }) => {
+    ({ first, movement: [mx, my], velocity: [vx, vy] }) => {
       if (first) lastDetentBucket.current = 0;
 
       const linear = mx - my;
@@ -177,9 +55,6 @@ export default function ScrubDial({ value, onDelta, size = 260 }: ScrubDialProps
         tickJolt();
         clickHaptic(Math.min(1, 0.3 + v * 0.3));
       }
-      if (last) {
-        // keep current rotation; don't snap — value-driven rest angle is used visually
-      }
     },
     { axis: undefined, filterTaps: true, pointer: { capture: true } }
   );
@@ -187,14 +62,13 @@ export default function ScrubDial({ value, onDelta, size = 260 }: ScrubDialProps
   const onWheel = useCallback(
     (e: React.WheelEvent<HTMLDivElement>) => {
       e.preventDefault();
-      // Scroll down (positive deltaY) → decrease; scroll up → increase.
       const delta = -e.deltaY;
       wheelAccum.current += delta;
 
       const now = performance.now();
       const dt = Math.max(1, now - (wheelLastTs.current || now));
       wheelLastTs.current = now;
-      const vel = Math.abs(delta) / dt; // px per ms
+      const vel = Math.abs(delta) / dt;
 
       while (Math.abs(wheelAccum.current) >= PX_PER_DETENT) {
         const sign = wheelAccum.current > 0 ? 1 : -1;
@@ -212,8 +86,17 @@ export default function ScrubDial({ value, onDelta, size = 260 }: ScrubDialProps
   // Value-driven resting rotation blends with drag rotation.
   const restRad = ((value % 36) / 36) * Math.PI * 2;
   const totalRot = useTransform(rotation, (r) => r + restRad);
-
+  const rotDeg = useTransform(totalRot, (r) => (r * 180) / Math.PI);
   const joltCssY = useTransform(jolt, [0, 1], [0, -1]);
+
+  // Precompute knurl tick count CSS for the rim
+  const knurlBg = useMemo(
+    () =>
+      "repeating-conic-gradient(from 0deg," +
+      "rgba(20,20,15,0.55) 0deg 1.1deg," +
+      "rgba(255,255,255,0.65) 1.1deg 2.2deg)",
+    []
+  );
 
   return (
     <div className="flex items-center justify-center select-none">
@@ -223,48 +106,130 @@ export default function ScrubDial({ value, onDelta, size = 260 }: ScrubDialProps
           width: size,
           height: size,
           y: joltCssY,
-          filter: "drop-shadow(6px 6px 0 #14140f)",
         }}
       >
-        {/* Drag capture layer (above canvas so pointer events always land here) */}
-        <div {...bind()} onWheel={onWheel} className="absolute inset-0 z-20 rounded-full" />
-
-        <Canvas
-          shadows
-          dpr={[1, 2]}
-          camera={{ position: [0, 6, 0.0001], fov: 18 }}
-          gl={{ antialias: true, alpha: true }}
+        {/* Drop shadow plate */}
+        <div
+          aria-hidden
+          className="absolute rounded-full"
           style={{
-            borderRadius: 9999,
+            left: 6,
+            top: 10,
+            width: size,
+            height: size,
+            background: "rgba(20,20,15,0.18)",
+            filter: "blur(10px)",
+          }}
+        />
+
+        {/* Outer bezel (metal rim with knurl) */}
+        <div
+          className="absolute inset-0 rounded-full"
+          style={{
+            background: knurlBg,
+            border: "1.5px solid var(--color-ink)",
+            boxShadow:
+              "inset 0 2px 2px rgba(255,255,255,0.7)," +
+              "inset 0 -3px 3px rgba(0,0,0,0.35)," +
+              "0 4px 0 #14140f",
+          }}
+        />
+
+        {/* Rotating layer (knurl shimmer + indicator) */}
+        <motion.div
+          className="absolute inset-0 rounded-full"
+          style={{
+            rotate: rotDeg,
             background:
-              "radial-gradient(circle at 50% 45%, #f4f4f0 0%, #e6e6df 65%, #d6d6cd 100%)",
-            border: "1.5px solid #14140f",
+              "conic-gradient(from 0deg," +
+              "rgba(255,255,255,0.0) 0deg," +
+              "rgba(255,255,255,0.25) 40deg," +
+              "rgba(0,0,0,0.15) 90deg," +
+              "rgba(255,255,255,0.0) 180deg," +
+              "rgba(255,255,255,0.25) 220deg," +
+              "rgba(0,0,0,0.15) 270deg," +
+              "rgba(255,255,255,0.0) 360deg)",
+            mixBlendMode: "overlay",
           }}
         >
-          {/* Studio lighting */}
-          <ambientLight intensity={0.55} />
-          <directionalLight
-            position={[3, 4, 2]}
-            intensity={1.6}
-            castShadow
-            shadow-mapSize-width={1024}
-            shadow-mapSize-height={1024}
+          {/* Indicator pip (travels with rotation, sits at 12 o'clock base) */}
+          <div
+            aria-hidden
+            className="absolute rounded-full"
+            style={{
+              left: "50%",
+              top: "8%",
+              width: 14,
+              height: 14,
+              transform: "translateX(-50%)",
+              background: "var(--color-orange)",
+              border: "1.5px solid var(--color-ink)",
+              boxShadow:
+                "inset 0 1px 0 rgba(255,255,255,0.55)," +
+                "inset 0 -2px 2px rgba(0,0,0,0.35)",
+            }}
           />
-          <directionalLight position={[-3, 2, -2]} intensity={0.55} color={"#cfe4ff"} />
-          <pointLight position={[0, 2, 2]} intensity={0.35} />
+        </motion.div>
 
-          {/* Rim/fill lights to fake environment reflections */}
-          <directionalLight position={[0, 3, -3]} intensity={0.4} color={"#fff3e0"} />
-          <directionalLight position={[-2, -1, 2]} intensity={0.25} color={"#ffffff"} />
+        {/* Inset cap (non-rotating face) */}
+        <div
+          className="absolute rounded-full"
+          style={{
+            inset: "16%",
+            background:
+              "radial-gradient(circle at 35% 30%," +
+              " #ffffff 0%," +
+              " #efeee8 18%," +
+              " #d8d7d1 55%," +
+              " #bdbcb4 100%)",
+            boxShadow:
+              "inset 0 3px 4px rgba(255,255,255,0.75)," +
+              "inset 0 -6px 10px rgba(0,0,0,0.35)," +
+              "0 1px 0 rgba(255,255,255,0.6)",
+            border: "1.5px solid rgba(20,20,15,0.35)",
+          }}
+        />
 
-          <Knob rotationY={totalRot} joltY={jolt} />
+        {/* Center dimple */}
+        <div
+          className="absolute rounded-full"
+          style={{
+            left: "50%",
+            top: "50%",
+            width: "18%",
+            height: "18%",
+            transform: "translate(-50%,-50%)",
+            background:
+              "radial-gradient(circle at 50% 60%," +
+              " #c9c8c0 0%," +
+              " #e5e4de 60%," +
+              " #f0efe9 100%)",
+            boxShadow:
+              "inset 0 2px 3px rgba(0,0,0,0.35)," +
+              "inset 0 -1px 1px rgba(255,255,255,0.6)",
+            border: "1px solid rgba(20,20,15,0.25)",
+          }}
+        />
 
-          {/* Shadow plane */}
-          <mesh position={[0, -0.25, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-            <circleGeometry args={[1.4, 64]} />
-            <shadowMaterial opacity={0.45} />
-          </mesh>
-        </Canvas>
+        {/* Gloss highlight arc */}
+        <div
+          aria-hidden
+          className="absolute rounded-full pointer-events-none"
+          style={{
+            inset: "18%",
+            background:
+              "radial-gradient(ellipse 70% 30% at 50% 10%," +
+              " rgba(255,255,255,0.7) 0%," +
+              " rgba(255,255,255,0) 70%)",
+          }}
+        />
+
+        {/* Drag + wheel capture layer (on top) */}
+        <div
+          {...bind()}
+          onWheel={onWheel}
+          className="absolute inset-0 z-20 rounded-full"
+        />
       </motion.div>
     </div>
   );

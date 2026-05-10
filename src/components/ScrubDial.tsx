@@ -22,9 +22,22 @@ function stepFromVelocity(vAbs: number): number {
  * 2D skeuomorphic knurled knob: stacked radial/conic gradients compose a
  * metal-rimmed dial with a recessed cap, indicator dot, and subtle shading.
  */
+type GestureMode = "pending" | "spin" | "slide";
+
 export default function ScrubDial({ value, onDelta, size = 260 }: ScrubDialProps) {
-  const lastDetentBucket = useRef(0);
   const PX_PER_DETENT = 12;
+  const RAD_PER_DETENT = (Math.PI * 2) / 30; // ~12° per detent
+  const LOCK_THRESHOLD_PX = 6;
+  const INNER_LOCK_RATIO = 0.45;
+
+  const lastDetentBucket = useRef(0);
+  const lastAngleBucket = useRef(0);
+  const mode = useRef<GestureMode>("pending");
+  const center = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const accumAngle = useRef(0);
+  const prevAngle = useRef(0);
+
+  const knobRef = useRef<HTMLDivElement>(null);
   const wheelAccum = useRef(0);
   const wheelLastTs = useRef(0);
 
@@ -36,24 +49,83 @@ export default function ScrubDial({ value, onDelta, size = 260 }: ScrubDialProps
     requestAnimationFrame(() => jolt.set(0));
   }, [jolt]);
 
-  const bind = useDrag(
-    ({ first, movement: [mx, my], velocity: [vx, vy] }) => {
-      if (first) lastDetentBucket.current = 0;
+  const emitDetents = useCallback(
+    (detents: number, v: number) => {
+      const step = stepFromVelocity(v);
+      const sign = detents > 0 ? 1 : -1;
+      onDelta(sign * Math.abs(detents) * step);
+      rotation.set(rotation.get() + sign * (Math.PI / 10));
+      tickJolt();
+      clickHaptic(Math.min(1, 0.3 + v * 0.3));
+    },
+    [onDelta, rotation, tickJolt]
+  );
 
+  const bind = useDrag(
+    ({ first, xy: [px, py], movement: [mx, my], velocity: [vx, vy] }) => {
+      if (first) {
+        lastDetentBucket.current = 0;
+        lastAngleBucket.current = 0;
+        accumAngle.current = 0;
+        mode.current = "pending";
+        const rect = knobRef.current?.getBoundingClientRect();
+        if (rect) {
+          center.current = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+          prevAngle.current = Math.atan2(py - center.current.y, px - center.current.x);
+        }
+        return;
+      }
+
+      const v = Math.max(Math.abs(vx), Math.abs(vy));
+
+      if (mode.current === "pending") {
+        if (Math.hypot(mx, my) < LOCK_THRESHOLD_PX) return;
+
+        const dx = px - center.current.x;
+        const dy = py - center.current.y;
+        const r = Math.hypot(dx, dy);
+        const radius = (knobRef.current?.getBoundingClientRect().width ?? size) / 2;
+
+        if (r > radius * INNER_LOCK_RATIO) {
+          // tangential-vs-radial test
+          const rx = dx / (r || 1);
+          const ry = dy / (r || 1);
+          const tx = -ry;
+          const ty = rx;
+          const mLen = Math.hypot(mx, my) || 1;
+          const along = (mx * tx + my * ty) / mLen;
+          mode.current = Math.abs(along) > 0.6 ? "spin" : "slide";
+        } else {
+          mode.current = "slide";
+        }
+        // reset anchors on lock so the measured motion starts at the lock moment
+        prevAngle.current = Math.atan2(py - center.current.y, px - center.current.x);
+      }
+
+      if (mode.current === "spin") {
+        const angle = Math.atan2(py - center.current.y, px - center.current.x);
+        let delta = angle - prevAngle.current;
+        if (delta > Math.PI) delta -= Math.PI * 2;
+        else if (delta < -Math.PI) delta += Math.PI * 2;
+        accumAngle.current += delta;
+        prevAngle.current = angle;
+
+        const bucket = Math.trunc(accumAngle.current / RAD_PER_DETENT);
+        if (bucket !== lastAngleBucket.current) {
+          const detents = bucket - lastAngleBucket.current;
+          lastAngleBucket.current = bucket;
+          emitDetents(detents, v);
+        }
+        return;
+      }
+
+      // slide: linear scrub, up/right increases
       const linear = mx - my;
       const bucket = Math.trunc(linear / PX_PER_DETENT);
-
       if (bucket !== lastDetentBucket.current) {
         const detents = bucket - lastDetentBucket.current;
         lastDetentBucket.current = bucket;
-
-        const v = Math.max(Math.abs(vx), Math.abs(vy));
-        const step = stepFromVelocity(v);
-        const sign = detents > 0 ? 1 : -1;
-        onDelta(sign * Math.abs(detents) * step);
-        rotation.set(rotation.get() + sign * (Math.PI / 10));
-        tickJolt();
-        clickHaptic(Math.min(1, 0.3 + v * 0.3));
+        emitDetents(detents, v);
       }
     },
     { axis: undefined, filterTaps: true, pointer: { capture: true } }
@@ -102,6 +174,7 @@ export default function ScrubDial({ value, onDelta, size = 260 }: ScrubDialProps
   return (
     <div className="flex items-center justify-center select-none">
       <motion.div
+        ref={knobRef}
         className="relative touch-none cursor-grab active:cursor-grabbing"
         style={{
           width: size,

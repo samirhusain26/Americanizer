@@ -58,7 +58,7 @@ export default function Americanizer() {
     >
       {/* Chassis header */}
       <header
-        className="px-5 pt-[calc(env(safe-area-inset-top)+14px)] pb-3 flex items-center justify-between rule-b"
+        className="px-5 pt-[calc(env(safe-area-inset-top)+8px)] pb-2 flex items-center justify-between rule-b"
         style={{ background: "var(--color-shell-2)" }}
       >
         <div className="flex items-center gap-2">
@@ -76,8 +76,8 @@ export default function Americanizer() {
       </header>
 
       {/* Zone 1 — FROM screen */}
-      <section className="px-5 pt-5 pb-5 rule-b">
-        <div className="flex items-center justify-end mb-2">
+      <section className="px-4 pt-3 pb-3 rule-b">
+        <div className="flex items-center justify-end mb-1.5">
           <UnitPill
             label={fromLabel}
             symbol={fromSymbol}
@@ -86,11 +86,11 @@ export default function Americanizer() {
           />
         </div>
         <div
-          className="lcd rounded-2xl px-5 py-5"
+          className="lcd rounded-2xl px-4 py-3"
           style={{ border: "1.5px solid var(--color-ink)" }}
         >
           <NumberDisplay
-            className="text-[5rem] sm:text-[6.5rem] leading-none"
+            className="text-[3.5rem] sm:text-[5.5rem] leading-none"
             formatted={fromText}
             rawValue={current.fromVal}
             onCommit={(n) => setValue("from", n)}
@@ -100,11 +100,11 @@ export default function Americanizer() {
 
       {/* Zone 2 — engine */}
       <section
-        className="flex-1 flex items-center justify-center gap-6 py-6 rule-b"
+        className="flex-1 flex items-center justify-center gap-4 py-3 rule-b min-h-0"
         style={{ background: "var(--color-shell-2)" }}
       >
-        <ScrubDial value={current.fromVal} onDelta={(d) => setValue("from", current.fromVal + d)} />
-        <div className="flex flex-col items-center gap-3">
+        <ScrubDial value={current.fromVal} onDelta={(d) => setValue("from", current.fromVal + d)} size={180} />
+        <div className="flex flex-col items-center gap-2">
           <SwapButton onSwap={swap} />
           <span className="ui-mono uppercase text-[9px] tracking-[0.28em] text-[color:var(--color-ink-soft)]">
             SWAP
@@ -113,8 +113,8 @@ export default function Americanizer() {
       </section>
 
       {/* Zone 3 — TO screen */}
-      <section className="px-5 pt-5 pb-5 rule-b">
-        <div className="flex items-center justify-end mb-2">
+      <section className="px-4 pt-3 pb-3 rule-b">
+        <div className="flex items-center justify-end mb-1.5">
           <UnitPill
             label={toLabel}
             symbol={toSymbol}
@@ -123,11 +123,11 @@ export default function Americanizer() {
           />
         </div>
         <div
-          className="lcd rounded-2xl px-5 py-5"
+          className="lcd rounded-2xl px-4 py-3"
           style={{ border: "1.5px solid var(--color-ink)" }}
         >
           <NumberDisplay
-            className="text-[5rem] sm:text-[6.5rem] leading-none"
+            className="text-[3.5rem] sm:text-[5.5rem] leading-none"
             formatted={toText}
             rawValue={current.toVal}
             onCommit={(n) => setValue("to", n)}

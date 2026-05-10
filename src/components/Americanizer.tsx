@@ -76,62 +76,65 @@ export default function Americanizer() {
       </header>
 
       {/* Zone 1 — FROM screen */}
-      <section className="px-4 pt-3 pb-3 rule-b">
-        <div className="flex items-center justify-end mb-1.5">
-          <UnitPill
-            label={fromLabel}
-            symbol={fromSymbol}
-            onClick={() => setDrawer("from")}
-            accent={accent}
-          />
-        </div>
+      <section className="px-4 pt-3 pb-2 rule-b">
         <div
-          className="lcd rounded-2xl px-4 py-3"
+          className="lcd rounded-2xl pl-4 pr-3 py-3 relative"
           style={{ border: "1.5px solid var(--color-ink)" }}
         >
-          <NumberDisplay
-            className="text-[3.5rem] sm:text-[5.5rem] leading-none"
-            formatted={fromText}
-            rawValue={current.fromVal}
-            onCommit={(n) => setValue("from", n)}
-          />
+          <div className="flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <NumberDisplay
+                className="text-[4.5rem] sm:text-[6rem] leading-none"
+                formatted={fromText}
+                rawValue={current.fromVal}
+                onCommit={(n) => setValue("from", n)}
+              />
+            </div>
+            <UnitPill
+              label={fromLabel}
+              symbol={fromSymbol}
+              onClick={() => setDrawer("from")}
+              accent={accent}
+              className="shrink-0"
+            />
+          </div>
         </div>
       </section>
 
       {/* Zone 2 — engine */}
       <section
-        className="flex-1 flex items-center justify-center gap-4 py-3 rule-b min-h-0"
+        className="flex items-center justify-center gap-5 py-3 rule-b relative"
         style={{ background: "var(--color-shell-2)" }}
       >
-        <ScrubDial value={current.fromVal} onDelta={(d) => setValue("from", current.fromVal + d)} size={180} />
-        <div className="flex flex-col items-center gap-2">
+        <ScrubDial value={current.fromVal} onDelta={(d) => setValue("from", current.fromVal + d)} size={160} />
+        <div className="absolute right-4 top-1/2 -translate-y-1/2">
           <SwapButton onSwap={swap} />
-          <span className="ui-mono uppercase text-[9px] tracking-[0.28em] text-[color:var(--color-ink-soft)]">
-            SWAP
-          </span>
         </div>
       </section>
 
       {/* Zone 3 — TO screen */}
-      <section className="px-4 pt-3 pb-3 rule-b">
-        <div className="flex items-center justify-end mb-1.5">
-          <UnitPill
-            label={toLabel}
-            symbol={toSymbol}
-            onClick={() => setDrawer("to")}
-            accent={accent}
-          />
-        </div>
+      <section className="px-4 pt-2 pb-3 rule-b">
         <div
-          className="lcd rounded-2xl px-4 py-3"
+          className="lcd rounded-2xl pl-4 pr-3 py-3 relative"
           style={{ border: "1.5px solid var(--color-ink)" }}
         >
-          <NumberDisplay
-            className="text-[3.5rem] sm:text-[5.5rem] leading-none"
-            formatted={toText}
-            rawValue={current.toVal}
-            onCommit={(n) => setValue("to", n)}
-          />
+          <div className="flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <NumberDisplay
+                className="text-[4.5rem] sm:text-[6rem] leading-none"
+                formatted={toText}
+                rawValue={current.toVal}
+                onCommit={(n) => setValue("to", n)}
+              />
+            </div>
+            <UnitPill
+              label={toLabel}
+              symbol={toSymbol}
+              onClick={() => setDrawer("to")}
+              accent={accent}
+              className="shrink-0"
+            />
+          </div>
         </div>
       </section>
 

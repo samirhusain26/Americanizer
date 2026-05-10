@@ -23,15 +23,15 @@ export default function UnitPill({
       type="button"
       onClick={onClick}
       className={clsx(
-        "ui-mono uppercase text-[12px] tracking-[0.14em]",
-        "px-4 py-2 rounded-full",
+        "ui-mono uppercase text-[18px] tracking-[0.12em] font-semibold",
+        "px-5 py-2.5 rounded-full",
         "chip chip-press transition-[transform,box-shadow] duration-75",
         "flex items-center gap-2",
         className
       )}
     >
       <span
-        className="w-2 h-2 rounded-full"
+        className="w-2.5 h-2.5 rounded-full"
         style={{ background: accentColor, border: "1px solid var(--color-ink)" }}
       />
       <span>{label}</span>

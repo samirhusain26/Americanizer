@@ -4,7 +4,6 @@ import { useDrag } from "@use-gesture/react";
 import { motion, useMotionValue, useTransform } from "framer-motion";
 import { useCallback, useMemo, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Environment, ContactShadows } from "@react-three/drei";
 import * as THREE from "three";
 import { clickHaptic } from "@/lib/haptics";
 
@@ -227,18 +226,17 @@ export default function ScrubDial({ value, onDelta, size = 260 }: ScrubDialProps
           <directionalLight position={[-3, 2, -2]} intensity={0.55} color={"#cfe4ff"} />
           <pointLight position={[0, 2, 2]} intensity={0.35} />
 
-          <Environment preset="studio" environmentIntensity={0.6} />
+          {/* Rim/fill lights to fake environment reflections */}
+          <directionalLight position={[0, 3, -3]} intensity={0.4} color={"#fff3e0"} />
+          <directionalLight position={[-2, -1, 2]} intensity={0.25} color={"#ffffff"} />
 
           <Knob rotationY={totalRot} joltY={jolt} />
 
-          <ContactShadows
-            position={[0, -0.25, 0]}
-            opacity={0.55}
-            scale={4}
-            blur={1.8}
-            far={2}
-            color="#14140f"
-          />
+          {/* Shadow plane */}
+          <mesh position={[0, -0.25, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+            <circleGeometry args={[1.4, 64]} />
+            <shadowMaterial opacity={0.45} />
+          </mesh>
         </Canvas>
       </motion.div>
     </div>

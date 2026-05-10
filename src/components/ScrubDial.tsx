@@ -3,7 +3,7 @@
 import { useDrag } from "@use-gesture/react";
 import { motion, useMotionValue, useTransform } from "framer-motion";
 import { useCallback, useMemo, useRef } from "react";
-import { clickHaptic } from "@/lib/haptics";
+import { clickHaptic, toggleMute } from "@/lib/haptics";
 
 interface ScrubDialProps {
   value: number;
@@ -24,7 +24,7 @@ function stepFromVelocity(vAbs: number): number {
  */
 type GestureMode = "pending" | "spin" | "slide";
 
-export default function ScrubDial({ value: _value, onDelta, size = 244 }: ScrubDialProps) {
+export default function ScrubDial({ value: _value, onDelta, size = 200 }: ScrubDialProps) {
   const PX_PER_DETENT = 12;
   const RAD_PER_DETENT = (Math.PI * 2) / 30; // ~12° per detent
   const LOCK_THRESHOLD_PX = 6;
@@ -229,28 +229,6 @@ export default function ScrubDial({ value: _value, onDelta, size = 244 }: ScrubD
             }}
           />
 
-          {/* Center dimple */}
-          <div
-            aria-hidden
-            style={{
-              position: "absolute",
-              left: "50%",
-              top: "50%",
-              width: "22%",
-              height: "22%",
-              transform: "translate(-50%, -50%)",
-              borderRadius: "50%",
-              background:
-                "radial-gradient(circle at 50% 65%," +
-                " #b8b7af 0%," +
-                " #d6d5cd 55%," +
-                " #eceae3 100%)",
-              border: "1px solid var(--color-ink)",
-              boxShadow:
-                "inset 0 3px 4px rgba(0,0,0,0.45)," +
-                "inset 0 -1px 2px rgba(255,255,255,0.5)",
-            }}
-          />
         </motion.div>
 
         {/* Drag + wheel capture layer (on top) */}
@@ -258,6 +236,32 @@ export default function ScrubDial({ value: _value, onDelta, size = 244 }: ScrubD
           {...bind()}
           onWheel={onWheel}
           className="absolute inset-0 z-20 rounded-full"
+        />
+
+        {/* Center mute button — above drag layer, non-rotating */}
+        <button
+          onClick={(e) => { e.stopPropagation(); toggleMute(); }}
+          onPointerDown={(e) => e.stopPropagation()}
+          style={{
+            position: "absolute",
+            left: "50%",
+            top: "50%",
+            width: "22%",
+            height: "22%",
+            transform: "translate(-50%, -50%)",
+            borderRadius: "50%",
+            background:
+              "radial-gradient(circle at 50% 65%," +
+              " #b8b7af 0%," +
+              " #d6d5cd 55%," +
+              " #eceae3 100%)",
+            border: "1px solid var(--color-ink)",
+            boxShadow:
+              "inset 0 3px 4px rgba(0,0,0,0.45)," +
+              "inset 0 -1px 2px rgba(255,255,255,0.5)",
+            zIndex: 30,
+            cursor: "pointer",
+          }}
         />
       </motion.div>
     </div>

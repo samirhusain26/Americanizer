@@ -46,14 +46,7 @@ export function formatCulinaryFraction(value: number): string {
 /** General number formatting for display (non-culinary). */
 export function formatNumber(value: number): string {
   if (!isFinite(value)) return "—";
-  const abs = Math.abs(value);
-  if (abs === 0) return "0";
-  if (abs >= 10000) return value.toFixed(0);
-  if (abs >= 1000) return value.toFixed(1);
-  if (abs >= 100) return value.toFixed(2);
-  if (abs >= 10) return value.toFixed(2);
-  if (abs >= 1) return value.toFixed(2);
-  return value.toFixed(3);
+  return Math.round(value).toString();
 }
 
 export function shouldUseCulinaryFraction(category: CategoryId, unitId: string): boolean {

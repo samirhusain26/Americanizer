@@ -5,6 +5,12 @@
  * Abstracted so a native Capacitor haptic plugin can replace it later.
  */
 let ctx: AudioContext | null = null;
+let muted = false;
+
+export function toggleMute(): void {
+  muted = !muted;
+  if (!muted) clickHaptic(1);
+}
 
 function getCtx(): AudioContext | null {
   if (typeof window === "undefined") return null;
@@ -19,7 +25,7 @@ function getCtx(): AudioContext | null {
 
 export function clickHaptic(intensity: number = 1): void {
   const c = getCtx();
-  if (!c) return;
+  if (!c || muted) return;
   const t = c.currentTime;
   const osc = c.createOscillator();
   const gain = c.createGain();

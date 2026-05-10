@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Americanizer",
   description: "Tactile metric ↔ US unit converter",
-  manifest: "/manifest.webmanifest",
+  manifest: "/americanizer/manifest.webmanifest",
   icons: {
     icon: [
       { url: "/icon.svg", type: "image/svg+xml" },

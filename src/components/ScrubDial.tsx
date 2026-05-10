@@ -147,6 +147,8 @@ function Knob({ rotationY, joltY }: { rotationY: { get: () => number }; joltY: {
 export default function ScrubDial({ value, onDelta, size = 260 }: ScrubDialProps) {
   const lastDetentBucket = useRef(0);
   const PX_PER_DETENT = 12;
+  const wheelAccum = useRef(0);
+  const wheelLastTs = useRef(0);
 
   const jolt = useMotionValue(0);
   const rotation = useMotionValue(0);
@@ -182,6 +184,31 @@ export default function ScrubDial({ value, onDelta, size = 260 }: ScrubDialProps
     { axis: undefined, filterTaps: true, pointer: { capture: true } }
   );
 
+  const onWheel = useCallback(
+    (e: React.WheelEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      // Scroll down (positive deltaY) → decrease; scroll up → increase.
+      const delta = -e.deltaY;
+      wheelAccum.current += delta;
+
+      const now = performance.now();
+      const dt = Math.max(1, now - (wheelLastTs.current || now));
+      wheelLastTs.current = now;
+      const vel = Math.abs(delta) / dt; // px per ms
+
+      while (Math.abs(wheelAccum.current) >= PX_PER_DETENT) {
+        const sign = wheelAccum.current > 0 ? 1 : -1;
+        wheelAccum.current -= sign * PX_PER_DETENT;
+        const step = stepFromVelocity(vel);
+        onDelta(sign * step);
+        rotation.set(rotation.get() + sign * (Math.PI / 10));
+        tickJolt();
+        clickHaptic(Math.min(1, 0.3 + vel * 0.3));
+      }
+    },
+    [onDelta, rotation, tickJolt]
+  );
+
   // Value-driven resting rotation blends with drag rotation.
   const restRad = ((value % 36) / 36) * Math.PI * 2;
   const totalRot = useTransform(rotation, (r) => r + restRad);
@@ -200,7 +227,7 @@ export default function ScrubDial({ value, onDelta, size = 260 }: ScrubDialProps
         }}
       >
         {/* Drag capture layer (above canvas so pointer events always land here) */}
-        <div {...bind()} className="absolute inset-0 z-20 rounded-full" />
+        <div {...bind()} onWheel={onWheel} className="absolute inset-0 z-20 rounded-full" />
 
         <Canvas
           shadows

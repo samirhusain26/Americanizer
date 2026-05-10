@@ -44,7 +44,7 @@ export default function NumberDisplay({ formatted, rawValue, onCommit, className
             aria-hidden
             style={{
               display: "inline-block",
-              width: 3,
+              width: "var(--dyn-caret-w, 3px)",
               height: "0.7em",
               background: caretColor,
               marginLeft: 4,

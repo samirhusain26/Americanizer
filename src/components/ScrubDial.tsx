@@ -185,14 +185,14 @@ export default function ScrubDial({ value: _value, onDelta, size = 244 }: ScrubD
           y: joltCssY,
         }}
       >
-        {/* Hard-shadow plinth (no blur) */}
+        {/* Hard-shadow plinth (no blur) — lift offset driven by weight category */}
         <div
           aria-hidden
           className="absolute rounded-full"
           style={{
             inset: 0,
             background: "var(--color-ink)",
-            transform: "translate(4px, 6px)",
+            transform: "translate(var(--dial-lift-x, 4px), var(--dial-lift-y, 6px))",
             zIndex: 0,
           }}
         />

@@ -1,7 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
-import clsx from "clsx";
 import { CATEGORIES, CATEGORY_ORDER, type CategoryId } from "@/lib/units";
 import { clickHaptic } from "@/lib/haptics";
 
@@ -10,6 +8,13 @@ const ACCENTS: Record<CategoryId, string> = {
   weight: "var(--color-lime)",
   length: "var(--color-cyan)",
   volume: "var(--color-yellow)",
+};
+
+const SHORT: Record<CategoryId, string> = {
+  temperature: "TEMP",
+  weight: "MASS",
+  length: "DIST",
+  volume: "VOL",
 };
 
 interface CategoryDockProps {
@@ -24,12 +29,11 @@ export default function CategoryDock({ active, onChange }: CategoryDockProps) {
       style={{ background: "var(--color-shell-2)" }}
     >
       <div
-        className="relative grid grid-cols-4 gap-2 p-2 rounded-2xl chassis"
+        className="grid grid-cols-4 gap-1.5 p-1.5 chassis"
         style={{ boxShadow: "var(--shadow-hard)" }}
       >
         {CATEGORY_ORDER.map((id) => {
           const isActive = id === active;
-          const label = CATEGORIES[id].label.slice(0, 4).toUpperCase();
           return (
             <button
               key={id}
@@ -40,31 +44,28 @@ export default function CategoryDock({ active, onChange }: CategoryDockProps) {
                   onChange(id);
                 }
               }}
-              className={clsx(
-                "relative h-11 rounded-xl ui-mono uppercase text-[11px] tracking-[0.16em]",
-                "flex items-center justify-center",
-                "border-[1.5px] border-ink/0"
-              )}
+              className="ui-mono uppercase flex flex-col items-center justify-center gap-0.5"
+              style={{
+                height: 52,
+                border: "1.5px solid var(--color-ink)",
+                background: isActive ? ACCENTS[id] : "var(--color-shell)",
+                color: isActive ? "var(--color-ink)" : "var(--color-ink-soft)",
+                boxShadow: isActive ? "var(--shadow-hard-sm)" : "none",
+                fontWeight: isActive ? 700 : 500,
+                transition: "background 0.1s, color 0.1s",
+              }}
             >
-              {isActive && (
-                <motion.span
-                  layoutId="dock-active"
-                  className="absolute inset-0 rounded-xl"
-                  style={{
-                    background: ACCENTS[id],
-                    border: "1.5px solid var(--color-ink)",
-                    boxShadow: "var(--shadow-hard-sm)",
-                  }}
-                  transition={{ type: "spring", stiffness: 520, damping: 40 }}
-                />
-              )}
+              <span style={{ fontSize: 11, letterSpacing: "0.18em" }}>{SHORT[id]}</span>
               <span
-                className={clsx(
-                  "relative",
-                  isActive ? "text-ink font-semibold" : "text-[color:var(--color-ink-soft)]"
-                )}
+                style={{
+                  fontSize: 8.5,
+                  letterSpacing: "0.1em",
+                  textTransform: "none",
+                  opacity: isActive ? 0.65 : 0.55,
+                  fontWeight: 500,
+                }}
               >
-                {label}
+                {CATEGORIES[id].label}
               </span>
             </button>
           );

@@ -7,15 +7,24 @@ A short tour through how the pieces fit. For setup and stack, see the [README](.
 ```
 <RootLayout>
   <Americanizer>                         (src/components/Americanizer.tsx)
-    <header>                             "AMERICANIZER" + active category name
-    <NumberDisplay />  <UnitPill />      Zone 1 — From
-    <ScrubDial />  <SwapButton />        Zone 2 — Engine
-    <NumberDisplay />  <UnitPill />      Zone 3 — To
-    <CategoryDock />                     Animated segmented control
-    <UnitDrawer />  <UnitDrawer />       Vaul bottom sheets (one per side)
+    <header>                             screw + brand + accent dot + category badge
+    <ValueRow zone="from" />             Zone 1 — LCD + NumberDisplay + UnitPill
+      └── caret blinks when active
+    <section>
+      <ScrubDial />                      Zone 2 — single dial, drives active zone
+      <SwapButton />                       (top-right corner of engine zone)
+    <ValueRow zone="to"   />             Zone 3 — same component as Zone 1
+    <CategoryDock />                     Flat hard-shadow segmented control
+    <UnitDrawer side="from" />           Vaul bottom sheet, accent-tinted
+    <UnitDrawer side="to"   />
 ```
 
-`Americanizer` owns the local UI state (`drawer: "from" | "to" | null`) and reads everything else from the Zustand store.
+`Americanizer` owns two pieces of local UI state:
+
+- `drawer: "from" | "to" | null` — which Vaul sheet is open.
+- `zone: "from" | "to"` — which value row the dial is currently editing.
+
+Everything else comes from the Zustand store. The active zone deliberately does **not** live in the store — it's a UI affordance, not user-facing state worth persisting.
 
 ## State flow
 
@@ -52,26 +61,39 @@ A short tour through how the pieces fit. For setup and stack, see the [README](.
 ## The dial loop
 
 ```
-pointer move
+pointer down
    │
    ▼
-useDrag callback
+mode = "pending"     ── first 6 px of motion picks the lock:
+                        outer rim + tangential drag → "spin"
+                        inner cap or radial drag    → "slide"
    │
-   ├─ accumPx = mx - my             // up / right both increase
+   ├─── spin ─────────────────────────────────────────────────
+   │      accumAngle += atan2 delta
+   │      rotation.set(accumAngle)               // 1:1 finger tracking
+   │      bucket = ⌊accumAngle / (2π/30)⌋        // detent every ~12°
+   │      onDelta(Δbucket * stepFromVelocity)
    │
-   ├─ bucket = ⌊accumPx / 12px⌋     // detent every 12 px
-   │
-   └─ if bucket changed:
-         step  = stepFromVelocity(max|vx|,|vy|)
-         delta = sign(Δbucket) * |Δbucket| * step
-         onDelta(delta) ─────────► setValue("from", current.fromVal + delta)
-         tickJolt()                 // 1px y-translate via MotionValue
-         clickHaptic()              // Web Audio click
+   └─── slide ────────────────────────────────────────────────
+          linear  = mx - my                      // up/right increase
+          rotation.set(linear / (size·π) * π)    // rim still feels alive
+          bucket = ⌊linear / 12px⌋               // detent every 12 px
+          onDelta(Δbucket * stepFromVelocity)
+
+every detent → tickJolt() + clickHaptic()
+       ↓
+onDelta ──► Americanizer.onScrub
+              if zone === "from": setValue("from", fromVal + delta)
+              else              : setValue("to",   toVal   + delta)
 ```
 
-Why `(mx − my)` instead of just `mx`: a knob feels equally responsive to vertical pulls and horizontal swirls. Subtracting `my` gives "up = increase" without a separate axis.
+There's also a `wheel` handler on the dial: it accumulates `-deltaY` against the same 12-px detent pitch and emits the same `onDelta` ladder, so a desktop scroll wheel feels identical to a slide-mode drag.
 
-Why a fixed pixel pitch instead of velocity-scaled distance: detents are about *tactile cadence*, not coverage. The velocity ladder controls *how much each click is worth* — it's the multiplier, not the trigger. This keeps the click rate predictable while letting the value cover real ground on a flick.
+**Why `(mx − my)` instead of just `mx`:** a knob feels equally responsive to vertical pulls and horizontal swirls. Subtracting `my` gives "up = increase" without a separate axis.
+
+**Why a fixed pixel pitch instead of velocity-scaled distance:** detents are about *tactile cadence*, not coverage. The velocity ladder controls *how much each click is worth* — it's the multiplier, not the trigger. This keeps the click rate predictable while letting the value cover real ground on a flick.
+
+**Why no value-driven rest rotation:** an earlier version blended the `value` into the rim rotation so the indicator pointed at "where you are." It made the dial feel laggy and untracked on flicks. The current build maps the rim to the *finger*, full stop.
 
 ## Selectors and the infinite-loop trap
 
@@ -107,4 +129,5 @@ That's it — drawer, conversions, and persistence pick it up automatically. If 
 1. Define a `CategoryDef` in `lib/units.ts` (canonical base unit, units array, defaults).
 2. Add it to `CATEGORIES` and `CATEGORY_ORDER`.
 3. Seed `HUMAN_BASELINE` in `store/converter.ts`.
-4. The dock auto-renders a fourth (or fifth, or…) tab. If you exceed four tabs, widen `grid-cols-4` in `CategoryDock.tsx`.
+4. Add an entry to `ACCENT_BY_CATEGORY` in `Americanizer.tsx` and to `ACCENTS` / `SHORT` in `CategoryDock.tsx`.
+5. The dock auto-renders a fourth (or fifth, or…) tab. If you exceed four tabs, widen `grid-cols-4` in `CategoryDock.tsx`.

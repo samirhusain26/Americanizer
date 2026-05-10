@@ -24,7 +24,7 @@ function stepFromVelocity(vAbs: number): number {
  */
 type GestureMode = "pending" | "spin" | "slide";
 
-export default function ScrubDial({ value, onDelta, size = 260 }: ScrubDialProps) {
+export default function ScrubDial({ value: _value, onDelta, size = 244 }: ScrubDialProps) {
   const PX_PER_DETENT = 12;
   const RAD_PER_DETENT = (Math.PI * 2) / 30; // ~12° per detent
   const LOCK_THRESHOLD_PX = 6;
@@ -54,11 +54,10 @@ export default function ScrubDial({ value, onDelta, size = 260 }: ScrubDialProps
       const step = stepFromVelocity(v);
       const sign = detents > 0 ? 1 : -1;
       onDelta(sign * Math.abs(detents) * step);
-      rotation.set(rotation.get() + sign * (Math.PI / 10));
       tickJolt();
       clickHaptic(Math.min(1, 0.3 + v * 0.3));
     },
-    [onDelta, rotation, tickJolt]
+    [onDelta, tickJolt]
   );
 
   const bind = useDrag(
@@ -67,6 +66,7 @@ export default function ScrubDial({ value, onDelta, size = 260 }: ScrubDialProps
         lastDetentBucket.current = 0;
         lastAngleBucket.current = 0;
         accumAngle.current = 0;
+        rotation.set(0);
         mode.current = "pending";
         const rect = knobRef.current?.getBoundingClientRect();
         if (rect) {
@@ -110,6 +110,9 @@ export default function ScrubDial({ value, onDelta, size = 260 }: ScrubDialProps
         accumAngle.current += delta;
         prevAngle.current = angle;
 
+        // 1:1 finger tracking — rotate the rim by the actual angle the finger moved.
+        rotation.set(accumAngle.current);
+
         const bucket = Math.trunc(accumAngle.current / RAD_PER_DETENT);
         if (bucket !== lastAngleBucket.current) {
           const detents = bucket - lastAngleBucket.current;
@@ -119,8 +122,10 @@ export default function ScrubDial({ value, onDelta, size = 260 }: ScrubDialProps
         return;
       }
 
-      // slide: linear scrub, up/right increases
+      // slide: linear scrub, up/right increases. Rotate rim proportionally so
+      // the knob still feels alive without spinning faster than the finger.
       const linear = mx - my;
+      rotation.set((linear / (size * Math.PI)) * Math.PI);
       const bucket = Math.trunc(linear / PX_PER_DETENT);
       if (bucket !== lastDetentBucket.current) {
         const detents = bucket - lastDetentBucket.current;
@@ -147,7 +152,7 @@ export default function ScrubDial({ value, onDelta, size = 260 }: ScrubDialProps
         wheelAccum.current -= sign * PX_PER_DETENT;
         const step = stepFromVelocity(vel);
         onDelta(sign * step);
-        rotation.set(rotation.get() + sign * (Math.PI / 10));
+        rotation.set(rotation.get() + sign * RAD_PER_DETENT);
         tickJolt();
         clickHaptic(Math.min(1, 0.3 + vel * 0.3));
       }
@@ -155,10 +160,8 @@ export default function ScrubDial({ value, onDelta, size = 260 }: ScrubDialProps
     [onDelta, rotation, tickJolt]
   );
 
-  // Value-driven resting rotation blends with drag rotation.
-  const restRad = ((value % 36) / 36) * Math.PI * 2;
-  const totalRot = useTransform(rotation, (r) => r + restRad);
-  const rotDeg = useTransform(totalRot, (r) => (r * 180) / Math.PI);
+  // Direct 1:1 mapping — no value-driven rotation, no per-detent kicker.
+  const rotDeg = useTransform(rotation, (r) => (r * 180) / Math.PI);
   const joltCssY = useTransform(jolt, [0, 1], [0, -1]);
 
   // Knurled rim: crisp alternating dark/light radial teeth
@@ -182,143 +185,73 @@ export default function ScrubDial({ value, onDelta, size = 260 }: ScrubDialProps
           y: joltCssY,
         }}
       >
-        {/* Drop shadow plate */}
+        {/* Hard-shadow plinth (no blur) */}
         <div
           aria-hidden
           className="absolute rounded-full"
           style={{
-            left: 4,
-            top: 12,
-            width: size,
-            height: size,
-            background: "rgba(20,20,15,0.28)",
-            filter: "blur(14px)",
+            inset: 0,
+            background: "var(--color-ink)",
+            transform: "translate(4px, 6px)",
+            zIndex: 0,
           }}
         />
 
-        {/* Rotating outer knurled rim */}
+        {/* Rotating outer knurled rim with inset cap & indicator */}
         <motion.div
           className="absolute inset-0 rounded-full"
           style={{
             rotate: rotDeg,
             background: knurlBg,
+            border: "1.5px solid var(--color-ink)",
             boxShadow:
               "inset 0 2px 3px rgba(255,255,255,0.35)," +
               "inset 0 -3px 6px rgba(0,0,0,0.55)",
+            zIndex: 1,
           }}
-        />
-
-        {/* Outer bezel outline + radial shading (non-rotating) */}
-        <div
-          aria-hidden
-          className="absolute inset-0 rounded-full pointer-events-none"
-          style={{
-            border: "1.5px solid var(--color-ink)",
-            boxShadow:
-              "0 6px 0 #14140f," +
-              "0 10px 22px rgba(0,0,0,0.22)",
-            background:
-              "radial-gradient(circle at 50% 30%," +
-              " rgba(255,255,255,0.35) 0%," +
-              " rgba(255,255,255,0) 45%)," +
-              "radial-gradient(circle at 50% 85%," +
-              " rgba(0,0,0,0.35) 0%," +
-              " rgba(0,0,0,0) 40%)",
-          }}
-        />
-
-        {/* Inner recessed ring (divides rim from cap) */}
-        <div
-          aria-hidden
-          className="absolute rounded-full pointer-events-none"
-          style={{
-            inset: "13%",
-            background: "#14140f",
-            boxShadow:
-              "inset 0 2px 3px rgba(0,0,0,0.8)," +
-              "inset 0 -1px 0 rgba(255,255,255,0.08)",
-          }}
-        />
-
-        {/* Inset cap (non-rotating face) */}
-        <div
-          aria-hidden
-          className="absolute rounded-full pointer-events-none"
-          style={{
-            inset: "15%",
-            background:
-              "radial-gradient(circle at 35% 28%," +
-              " #fafaf6 0%," +
-              " #ecebe4 22%," +
-              " #cfcec6 60%," +
-              " #a9a89f 100%)",
-            boxShadow:
-              "inset 0 4px 6px rgba(255,255,255,0.85)," +
-              "inset 0 -10px 16px rgba(0,0,0,0.3)",
-            border: "1px solid rgba(20,20,15,0.5)",
-          }}
-        />
-
-        {/* Rotating indicator line on cap */}
-        <motion.div
-          className="absolute pointer-events-none"
-          style={{
-            inset: "15%",
-            rotate: rotDeg,
-          }}
-          aria-hidden
         >
+          {/* Inset cap (rotates with rim — TE style) */}
           <div
+            aria-hidden
+            className="absolute rounded-full pointer-events-none"
+            style={{
+              inset: "13%",
+              background:
+                "radial-gradient(circle at 35% 28%," +
+                " #fafaf6 0%," +
+                " #ecebe4 25%," +
+                " #cfcec6 65%," +
+                " #a9a89f 100%)",
+              border: "1px solid var(--color-ink)",
+              boxShadow:
+                "inset 0 4px 6px rgba(255,255,255,0.45)," +
+                "inset 0 -10px 16px rgba(0,0,0,0.32)",
+            }}
+          />
+
+          {/* Center dimple */}
+          <div
+            aria-hidden
             style={{
               position: "absolute",
               left: "50%",
-              top: "6%",
-              width: 4,
+              top: "50%",
+              width: "22%",
               height: "22%",
-              transform: "translateX(-50%)",
-              background: "var(--color-orange)",
-              borderRadius: 2,
+              transform: "translate(-50%, -50%)",
+              borderRadius: "50%",
+              background:
+                "radial-gradient(circle at 50% 65%," +
+                " #b8b7af 0%," +
+                " #d6d5cd 55%," +
+                " #eceae3 100%)",
               border: "1px solid var(--color-ink)",
-              boxShadow: "0 1px 0 rgba(255,255,255,0.4)",
+              boxShadow:
+                "inset 0 3px 4px rgba(0,0,0,0.45)," +
+                "inset 0 -1px 2px rgba(255,255,255,0.5)",
             }}
           />
         </motion.div>
-
-        {/* Center dimple */}
-        <div
-          aria-hidden
-          className="absolute rounded-full pointer-events-none"
-          style={{
-            left: "50%",
-            top: "50%",
-            width: "22%",
-            height: "22%",
-            transform: "translate(-50%,-50%)",
-            background:
-              "radial-gradient(circle at 50% 65%," +
-              " #b8b7af 0%," +
-              " #d6d5cd 55%," +
-              " #eceae3 100%)",
-            boxShadow:
-              "inset 0 3px 4px rgba(0,0,0,0.45)," +
-              "inset 0 -1px 2px rgba(255,255,255,0.7)," +
-              "0 1px 0 rgba(255,255,255,0.5)",
-            border: "1px solid rgba(20,20,15,0.4)",
-          }}
-        />
-
-        {/* Top gloss highlight on cap */}
-        <div
-          aria-hidden
-          className="absolute rounded-full pointer-events-none"
-          style={{
-            inset: "17%",
-            background:
-              "radial-gradient(ellipse 65% 28% at 50% 12%," +
-              " rgba(255,255,255,0.8) 0%," +
-              " rgba(255,255,255,0) 75%)",
-          }}
-        />
 
         {/* Drag + wheel capture layer (on top) */}
         <div

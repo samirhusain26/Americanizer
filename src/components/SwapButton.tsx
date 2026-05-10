@@ -3,7 +3,13 @@
 import { motion } from "framer-motion";
 import { clickHaptic } from "@/lib/haptics";
 
-export default function SwapButton({ onSwap }: { onSwap: () => void }) {
+export default function SwapButton({
+  onSwap,
+  accent = "var(--color-orange)",
+}: {
+  onSwap: () => void;
+  accent?: string;
+}) {
   return (
     <motion.button
       type="button"
@@ -14,12 +20,12 @@ export default function SwapButton({ onSwap }: { onSwap: () => void }) {
         onSwap();
       }}
       aria-label="Swap units"
-      className="w-12 h-12 rounded-full grid place-items-center chip chip-press"
-      style={{ background: "var(--color-lime)" }}
+      className="w-12 h-12 grid place-items-center chip chip-press"
+      style={{ background: "var(--color-shell)" }}
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path d="M7 4 L7 20 M7 4 L3 8 M7 4 L11 8" stroke="var(--color-ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M17 20 L17 4 M17 20 L13 16 M17 20 L21 16" stroke="var(--color-ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
+        <path d="M5 3v10m0 0l-3-3m3 3l3-3" stroke="var(--color-ink)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M15 17V7m0 0l-3 3m3-3l3 3" stroke={accent} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </motion.button>
   );

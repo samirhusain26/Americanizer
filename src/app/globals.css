@@ -53,12 +53,40 @@
 /* LCD-like screen surface */
 .lcd {
   background:
-    repeating-linear-gradient(0deg, rgba(0,0,0,0.03) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(0deg, rgba(0,0,0,0.035) 0 1px, transparent 1px 3px),
     linear-gradient(180deg, #d8dcc6 0%, #c6caaf 100%);
   color: #14140f;
+  border: 1.5px solid var(--color-ink);
   box-shadow:
-    inset 0 2px 0 rgba(0,0,0,0.12),
+    inset 0 2px 0 rgba(0,0,0,0.14),
     inset 0 -2px 0 rgba(255,255,255,0.35);
+}
+.lcd[data-active="true"] {
+  box-shadow:
+    inset 0 2px 0 rgba(0,0,0,0.14),
+    inset 0 -2px 0 rgba(255,255,255,0.35),
+    0 0 0 2px var(--accent, var(--color-orange));
+}
+
+/* Punch-through screw — TE chassis detail */
+.screw {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #cfcec6 0%, #8a8a82 60%, #14140f 100%);
+  border: 1px solid var(--color-ink);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(0,0,0,0.4);
+  position: relative;
+  display: inline-block;
+}
+.screw::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(45deg, transparent 46%, var(--color-ink) 46% 54%, transparent 54%);
+  border-radius: 50%;
+}
+
+@keyframes lcd-blink {
+  0%, 50% { opacity: 1; }
+  50.1%, 100% { opacity: 0; }
 }
 
 /* Rule lines between physical zones */
@@ -77,10 +105,10 @@
 }
 .chip-press:active { box-shadow: 0 0 0 0 var(--color-ink); transform: translate(2px, 2px); }
 
-/* Knurled ring texture (radial marks drawn with conic gradient) */
+/* Knurled ring texture — TE-style alternating teeth */
 .knurl {
-  background-image:
-    repeating-conic-gradient(from 0deg,
-      rgba(0,0,0,0.25) 0deg 1.5deg,
-      rgba(255,255,255,0.6) 1.5deg 3deg);
+  background-image: repeating-conic-gradient(from 0deg,
+    #1a1a14 0deg 3deg,
+    #6a6a60 3deg 4deg,
+    #2a2a22 4deg 6deg);
 }

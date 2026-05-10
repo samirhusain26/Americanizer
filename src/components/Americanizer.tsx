@@ -11,12 +11,14 @@ import ScrubDial from "./ScrubDial";
 import SwapButton from "./SwapButton";
 import CategoryDock from "./CategoryDock";
 
-const ACCENT_BY_CATEGORY: Record<CategoryId, "orange" | "lime" | "cyan"> = {
-  temperature: "orange",
-  weight: "lime",
-  length: "cyan",
-  volume: "orange",
+const ACCENT_BY_CATEGORY: Record<CategoryId, string> = {
+  temperature: "var(--color-orange)",
+  weight: "var(--color-lime)",
+  length: "var(--color-cyan)",
+  volume: "var(--color-yellow)",
 };
+
+type ActiveZone = "from" | "to";
 
 export default function Americanizer() {
   const setActive = useConverter((s) => s.setActive);
@@ -39,100 +41,94 @@ export default function Americanizer() {
   }, [active, cat]);
 
   const [drawer, setDrawer] = useState<null | Side>(null);
+  const [zone, setZone] = useState<ActiveZone>("from");
 
   const fromText = formatForUnit(current.category, current.fromUnit, current.fromVal);
   const toText = formatForUnit(current.category, current.toUnit, current.toVal);
 
   const fromUnitDef = current.def.units.find((u) => u.id === current.fromUnit)!;
   const toUnitDef = current.def.units.find((u) => u.id === current.toUnit)!;
-  const fromLabel = fromUnitDef.longLabel;
-  const toLabel = toUnitDef.longLabel;
-  const fromSymbol = fromUnitDef.label;
-  const toSymbol = toUnitDef.label;
   const accent = ACCENT_BY_CATEGORY[current.category];
+
+  const onScrub = (delta: number) => {
+    if (zone === "from") setValue("from", current.fromVal + delta);
+    else setValue("to", current.toVal + delta);
+  };
 
   return (
     <main
       className="relative h-[100dvh] flex flex-col overflow-hidden"
-      style={{ background: "var(--color-shell)", color: "var(--color-ink)" }}
+      style={{ background: "var(--color-shell)", color: "var(--color-ink)", ["--accent" as string]: accent }}
     >
       {/* Chassis header */}
       <header
-        className="px-5 pt-[calc(env(safe-area-inset-top)+8px)] pb-2 flex items-center justify-between rule-b"
-        style={{ background: "var(--color-shell-2)" }}
+        className="px-4 pt-[calc(env(safe-area-inset-top)+8px)] pb-2.5 flex items-center justify-between rule-b ui-mono uppercase"
+        style={{
+          background: "var(--color-shell-2)",
+          fontSize: 10,
+          letterSpacing: "0.28em",
+          fontWeight: 600,
+        }}
       >
-        <div className="flex items-center gap-2">
+        <span className="flex items-center gap-2">
+          <span className="screw" />
+          <span>AMERICANIZER</span>
+        </span>
+        <span
+          className="flex items-center gap-2"
+          style={{ color: "var(--color-ink-soft)" }}
+        >
           <span
-            className="w-2.5 h-2.5 rounded-full"
-            style={{ background: "var(--color-orange)", border: "1px solid var(--color-ink)" }}
+            style={{
+              width: 6,
+              height: 6,
+              background: accent,
+              border: "1.5px solid var(--color-ink)",
+              display: "inline-block",
+            }}
           />
-          <span className="ui-mono uppercase text-[11px] tracking-[0.28em]">
-            AMERICANIZER
-          </span>
-        </div>
-        <span className="ui-mono uppercase text-[10px] tracking-[0.28em] text-[color:var(--color-ink-soft)]">
           {current.def.label} / v1
         </span>
       </header>
 
-      {/* Zone 1 — FROM screen */}
-      <section className="px-4 pt-3 pb-2 rule-b shrink-0">
-        <div className="flex items-center justify-between mb-1.5 px-1">
-          <span className="ui-mono uppercase text-[9px] tracking-[0.28em] text-[color:var(--color-ink-soft)]">FROM</span>
-          <UnitPill
-            label={fromLabel}
-            symbol={fromSymbol}
-            onClick={() => setDrawer("from")}
-            accent={accent}
-          />
-        </div>
-        <div
-          className="lcd rounded-2xl px-4 py-2"
-          style={{ border: "1.5px solid var(--color-ink)" }}
-        >
-          <NumberDisplay
-            className="text-[4.5rem] sm:text-[6rem] leading-none"
-            formatted={fromText}
-            rawValue={current.fromVal}
-            onCommit={(n) => setValue("from", n)}
-          />
-        </div>
-      </section>
+      {/* Zone 1 — FROM */}
+      <ValueRow
+        accent={accent}
+        formatted={fromText}
+        rawValue={current.fromVal}
+        unitSymbol={fromUnitDef.label}
+        unitName={fromUnitDef.longLabel}
+        active={zone === "from"}
+        onActivate={() => setZone("from")}
+        onCommit={(n) => setValue("from", n)}
+        onOpenPicker={() => setDrawer("from")}
+      />
 
       {/* Zone 2 — engine */}
       <section
-        className="flex-1 min-h-0 flex items-center justify-center py-2 rule-b relative"
-        style={{ background: "var(--color-shell-2)" }}
+        className="flex-1 min-h-0 flex items-center justify-center rule-b relative"
+        style={{ background: "var(--color-shell-2)", padding: "20px 0" }}
       >
-        <ScrubDial value={current.fromVal} onDelta={(d) => setValue("from", current.fromVal + d)} size={140} />
-        <div className="absolute right-4 top-1/2 -translate-y-1/2">
-          <SwapButton onSwap={swap} />
+        <ScrubDial value={zone === "from" ? current.fromVal : current.toVal} onDelta={onScrub} />
+
+        {/* Swap */}
+        <div className="absolute" style={{ top: 14, right: 14 }}>
+          <SwapButton onSwap={swap} accent={accent} />
         </div>
       </section>
 
-      {/* Zone 3 — TO screen */}
-      <section className="px-4 pt-2 pb-3 rule-b shrink-0">
-        <div className="flex items-center justify-between mb-1.5 px-1">
-          <span className="ui-mono uppercase text-[9px] tracking-[0.28em] text-[color:var(--color-ink-soft)]">TO</span>
-          <UnitPill
-            label={toLabel}
-            symbol={toSymbol}
-            onClick={() => setDrawer("to")}
-            accent={accent}
-          />
-        </div>
-        <div
-          className="lcd rounded-2xl px-4 py-2"
-          style={{ border: "1.5px solid var(--color-ink)" }}
-        >
-          <NumberDisplay
-            className="text-[4.5rem] sm:text-[6rem] leading-none"
-            formatted={toText}
-            rawValue={current.toVal}
-            onCommit={(n) => setValue("to", n)}
-          />
-        </div>
-      </section>
+      {/* Zone 3 — TO */}
+      <ValueRow
+        accent={accent}
+        formatted={toText}
+        rawValue={current.toVal}
+        unitSymbol={toUnitDef.label}
+        unitName={toUnitDef.longLabel}
+        active={zone === "to"}
+        onActivate={() => setZone("to")}
+        onCommit={(n) => setValue("to", n)}
+        onOpenPicker={() => setDrawer("to")}
+      />
 
       <CategoryDock active={current.category} onChange={setActive} />
 
@@ -141,7 +137,8 @@ export default function Americanizer() {
         onOpenChange={(o) => setDrawer(o ? "from" : null)}
         category={current.def}
         selectedUnitId={current.fromUnit}
-        title={current.def.label}
+        title={`${current.def.label} · FROM A`}
+        accent={accent}
         onSelect={(id) => setUnit("from", id)}
       />
       <UnitDrawer
@@ -149,9 +146,88 @@ export default function Americanizer() {
         onOpenChange={(o) => setDrawer(o ? "to" : null)}
         category={current.def}
         selectedUnitId={current.toUnit}
-        title={current.def.label}
+        title={`${current.def.label} · TO B`}
+        accent={accent}
         onSelect={(id) => setUnit("to", id)}
       />
     </main>
+  );
+}
+
+function ValueRow({
+  accent,
+  formatted,
+  rawValue,
+  unitSymbol,
+  unitName,
+  active,
+  onActivate,
+  onCommit,
+  onOpenPicker,
+}: {
+  accent: string;
+  formatted: string;
+  rawValue: number;
+  unitSymbol: string;
+  unitName: string;
+  active: boolean;
+  onActivate: () => void;
+  onCommit: (n: number) => void;
+  onOpenPicker: () => void;
+}) {
+  return (
+    <section
+      className="rule-b shrink-0 cursor-pointer"
+      onClick={onActivate}
+      style={{ padding: "12px 16px 14px", position: "relative" }}
+    >
+      {/* meta line — active dot + unit name */}
+      <div
+        className="ui-mono uppercase flex justify-between items-center"
+        style={{
+          fontSize: 10,
+          letterSpacing: "0.22em",
+          color: "var(--color-ink-soft)",
+          marginBottom: 6,
+        }}
+      >
+        <span
+          style={{
+            width: 8,
+            height: 8,
+            borderRadius: "50%",
+            background: active ? accent : "transparent",
+            border: `1.5px solid ${active ? "var(--color-ink)" : "var(--color-ink-soft)"}`,
+            display: "inline-block",
+          }}
+        />
+        <span>{unitName}</span>
+      </div>
+
+      {/* LCD */}
+      <div
+        className="lcd flex items-center justify-between gap-2.5"
+        data-active={active}
+        style={{ ["--accent" as string]: accent, padding: "10px 14px" }}
+      >
+        <div
+          className="flex-1 min-w-0"
+          style={{ overflow: "hidden" }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <NumberDisplay
+            className="text-[60px] sm:text-[68px] leading-none font-semibold"
+            formatted={formatted}
+            rawValue={rawValue}
+            onCommit={onCommit}
+            showCaret={active}
+            caretColor={accent}
+          />
+        </div>
+        <div onClick={(e) => e.stopPropagation()}>
+          <UnitPill symbol={unitSymbol} onClick={onOpenPicker} />
+        </div>
+      </div>
+    </section>
   );
 }

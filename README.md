@@ -2,7 +2,7 @@
 
 A tactile mobile-first PWA for converting between Metric and US Customary units. Designed to feel like a premium piece of physical hardware — massive numbers, a knurled volume-knob dial, native-keypad direct entry, pseudo-haptic feedback.
 
-> Bloomberg-meets-Apple aesthetic. Charcoal canvas, paper text, amber accent.
+> Teenage Engineering / Braun chassis aesthetic. Light "shell" panels, hard 1.5 px ink rules, hard-shadow stacking, per-category accent (orange / lime / cyan / yellow).
 
 ## Stack
 
@@ -12,8 +12,8 @@ A tactile mobile-first PWA for converting between Metric and US Customary units.
 | Language       | TypeScript (strict)                             |
 | Styling        | **Tailwind CSS 4** via `@tailwindcss/postcss`   |
 | State          | **Zustand 5** + `persist` (localStorage)        |
-| Animation      | **Framer Motion 11** (spring transitions, layoutId) |
-| Gestures       | **`@use-gesture/react`** (velocity scrubbing)   |
+| Animation      | **Framer Motion 11** (motion values, springs)   |
+| Gestures       | **`@use-gesture/react`** (spin + slide scrub, wheel) |
 | Bottom sheet   | **Vaul**                                        |
 | Reactive bg    | **React Three Fiber** + Three.js (planned)      |
 | PWA            | Workbox 7 — cache-first (planned)               |
@@ -65,10 +65,13 @@ _design_reference/      Original Claude Design HTML/JSX prototype
 
 ### Layout (vertical split inside the viewport)
 
-1. **Zone 1 — From.** Massive editable number + unit pill.
-2. **Zone 2 — Engine.** Scrub dial + swap button.
-3. **Zone 3 — To.** Massive editable number (slightly dimmed) + unit pill.
-4. **Dock.** Segmented control for Temperature / Weight / Length / Volume, animated via Framer `layoutId`.
+1. **Chassis header.** Brand label + screw + accent dot + category badge.
+2. **Zone 1 — From `ValueRow`.** LCD with massive editable number, unit pill, blinking caret when active.
+3. **Zone 2 — Engine.** Single skeuomorphic scrub dial + swap button. The dial drives whichever zone is currently active.
+4. **Zone 3 — To `ValueRow`.** Same component as Zone 1; tap to make it the active zone.
+5. **Dock.** Segmented control for Temperature / Weight / Length / Volume — flat hard-shadow chips, no layout animation.
+
+Both value rows share the `ValueRow` component (`Americanizer.tsx`). The active zone is local UI state in `Americanizer`; the store has no notion of it.
 
 ### State model
 
@@ -110,7 +113,12 @@ convert(category, value, fromId, toId): number
 
 ### Velocity-tiered scrubbing (the dial)
 
-`@use-gesture/react`'s `useDrag` reads pointer travel and velocity. Detents fire every **12 px** of cumulative `(mx − my)` (up/right increases). Each detent emits an `onDelta` of `±step` where step is selected from the velocity tier:
+`@use-gesture/react`'s `useDrag` reads pointer travel and velocity. The first ~6 px after press locks the gesture into one of two modes:
+
+- **Spin** — tangential motion on the outer rim. Detents fire every `2π/30` rad (≈12°) of accumulated angle; the rim rotates 1:1 with the finger.
+- **Slide** — radial / inner-cap motion, or any drag that's more radial than tangential. Detents fire every **12 px** of cumulative `(mx − my)` (up/right both increase). The rim rotates proportionally so it still feels alive.
+
+Either way, each detent emits an `onDelta` of `±step` where step is selected from the velocity tier:
 
 | Pointer velocity (px/ms) | Step  |
 | ------------------------ | ----- |
@@ -119,17 +127,22 @@ convert(category, value, fromId, toId): number
 | `< 3.0`                  | `10`  |
 | `≥ 3.0`                  | `100` |
 
+The dial also accepts mouse `wheel`, accumulating `deltaY` against the same 12-px detent pitch.
+
+`onDelta` flows up through `Americanizer.onScrub`, which routes to `setValue("from", …)` or `setValue("to", …)` depending on which zone is currently active.
+
 Each detent additionally:
 
 - plays a 25 ms square-wave click via Web Audio (`lib/haptics.ts`)
 - runs a 1-px Framer Motion jolt on the dial body
-- nudges the indicator angle for visual feedback
 
 Tap-vs-drag is disambiguated with `filterTaps: true`.
 
 ### Direct numeric entry
 
 `NumberDisplay` renders the visible glyphs as styled text and overlays a transparent `<input inputMode="decimal" pattern="[0-9.\-]*">` to summon the native mobile numeric keypad. Whichever side (From or To) the user edits becomes the source of truth — the store updates `value` (in the From unit), recomputed if the user typed into the To side.
+
+When a zone is active (and not editing), `NumberDisplay` renders a 3-px LCD-style caret at the end of the number, blinking via the `lcd-blink` keyframe in `globals.css`.
 
 ### Display formatting
 
@@ -154,25 +167,34 @@ On first hydrate (no `localStorage`), the store seeds:
 
 ## Design tokens
 
-Defined in `src/app/globals.css` under `@theme` so they're reachable as Tailwind utilities (e.g. `bg-canvas`, `text-paper`):
+Defined in `src/app/globals.css` under `@theme`:
 
-| Token                          | Value                       |
-| ------------------------------ | --------------------------- |
-| `--color-canvas`               | `#14130F`                   |
-| `--color-paper`                | `#F4F1EB`                   |
-| `--color-taupe`                | `#2A2823`                   |
-| `--color-accent`               | `oklch(74% 0.16 60)` amber  |
-| `--color-accent-yellow-green`  | `oklch(82% 0.18 130)`       |
-| `--color-accent-magenta`       | `oklch(68% 0.24 350)`       |
-| `--color-accent-cyan`          | `oklch(78% 0.14 200)`       |
-| `--font-display`               | Funnel Display              |
-| `--font-mono`                  | IBM Plex Mono               |
-| `--font-serif`                 | Newsreader                  |
+| Token                | Value     | Use                                  |
+| -------------------- | --------- | ------------------------------------ |
+| `--color-shell`      | `#f4f4f0` | Primary panel background             |
+| `--color-shell-2`    | `#eaeae4` | Recessed / secondary panel           |
+| `--color-shell-3`    | `#dcdcd4` | Deepest recess                       |
+| `--color-ink`        | `#14140f` | Strokes, ink-on-paper text           |
+| `--color-ink-soft`   | `#4a4a42` | Secondary text / inactive borders    |
+| `--color-orange`     | `#ff5a1f` | Temperature accent                   |
+| `--color-lime`       | `#c8f02b` | Weight accent                        |
+| `--color-cyan`       | `#3ad0ff` | Length accent                        |
+| `--color-yellow`     | `#ffd400` | Volume accent                        |
+| `--shadow-hard-sm`   | `2px 2px 0 0 ink` | Hard offset shadow              |
+| `--shadow-hard`      | `4px 4px 0 0 ink` | Default chassis shadow          |
+| `--shadow-hard-lg`   | `6px 6px 0 0 ink` | Big plinth shadow               |
+
+The active category's accent is published on `<main>` as `--accent`, so descendants (LCD glow, swap arrow, dock chip) can reference `var(--accent)` without prop-drilling.
 
 Utility classes:
 
-- `.num-display` — display sans for numerals (tnum + lnum, tight tracking)
-- `.ui-mono` — IBM Plex Mono for UI labels (wider tracking)
+- `.lcd` — green-tinted LCD plate; `[data-active="true"]` gets a 2-px accent ring.
+- `.chassis` / `.rule-b` / `.rule-t` — shell backgrounds and 1.5-px ink rules.
+- `.chip` / `.chip-press` — hard-shadow button + press translation.
+- `.knurl` — radial knurled-ring texture (also generated inline in `ScrubDial`).
+- `.screw` — 8 px chassis-screw decoration (used in the header).
+- `.num-display` — display sans for numerals (tnum + lnum, tight tracking).
+- `.ui-mono` — IBM Plex Mono for UI labels (wider tracking).
 
 ## Roadmap
 

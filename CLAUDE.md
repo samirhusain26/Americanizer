@@ -34,11 +34,18 @@ npm run typecheck
 
 ## Dial mechanics (`ScrubDial.tsx`)
 
-- `useDrag` from `@use-gesture/react`, pointer-captured, `filterTaps: true`.
-- Detents fire every **12 px** of cumulative `(mx − my)` so up/right both increase the value.
+- `useDrag` from `@use-gesture/react`, pointer-captured, `filterTaps: true`. Wrap with a plain `<div {...bind()} />` — `motion.div`'s native `onDrag` typing collides with use-gesture's.
+- First ~6 px of motion locks the gesture into one of two modes:
+  - **spin** — outer rim, tangential motion; detents every `2π/30` rad. Rim rotates 1:1 with the finger (no value-driven rest rotation — was tried, felt laggy on flicks).
+  - **slide** — inner cap or radial motion; detents every **12 px** of `(mx − my)` so up/right both increase. Rim rotates proportionally so it still feels alive.
+- `wheel` handler accumulates `-deltaY` against the same 12-px detent pitch.
 - Step is picked from velocity (px/ms): `<0.4 → 0.1`, `<1.4 → 1`, `<3.0 → 10`, else `100`.
-- Each detent: emits `onDelta`, plays a Web Audio click, runs a 1px Framer Motion jolt.
-- Wrap with a plain `<div {...bind()} />` — `motion.div`'s native `onDrag` typing collides with use-gesture's.
+- Each detent: emits `onDelta`, plays a Web Audio click, runs a 1 px Framer Motion `y` jolt.
+- The dial doesn't know about from/to. `Americanizer.onScrub` routes `onDelta` to `setValue("from"|"to", …)` based on local `zone` state.
+
+## Active-zone model (`Americanizer.tsx`)
+
+Both value rows render the same `ValueRow` component. `Americanizer` holds local `zone: "from" | "to"` state; the active row gets the LCD ring (`.lcd[data-active="true"]`), the blinking caret in `NumberDisplay`, and receives all dial deltas. Zone is **not** persisted — it's a UI affordance. Tap a row to activate it; tapping the number itself or the unit pill is `stopPropagation`'d so it triggers the keypad / drawer instead of the activate handler.
 
 ## Haptics
 
@@ -46,7 +53,7 @@ npm run typecheck
 
 ## Files to know
 
-- `src/components/Americanizer.tsx` — top-level composition (Zone 1 / dial / Zone 3 / dock + drawers).
+- `src/components/Americanizer.tsx` — top-level composition + `ValueRow` + active-zone routing.
 - `src/components/ScrubDial.tsx` — the engine; velocity tiers live here.
 - `src/store/converter.ts` — store, persist config, `selectActive`, `selectCategoryState`.
 - `src/lib/units.ts` — categories & convert().

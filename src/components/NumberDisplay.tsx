@@ -8,6 +8,8 @@ interface NumberDisplayProps {
   rawValue: number;         // numeric value (used to seed editing buffer)
   onCommit: (n: number) => void;
   className?: string;
+  showCaret?: boolean;      // blinking accent caret when this zone is active
+  caretColor?: string;
 }
 
 /**
@@ -15,7 +17,7 @@ interface NumberDisplayProps {
  * an absolutely-positioned, transparent <input inputMode="decimal"> sits over
  * it to summon the native numeric keypad on tap.
  */
-export default function NumberDisplay({ formatted, rawValue, onCommit, className }: NumberDisplayProps) {
+export default function NumberDisplay({ formatted, rawValue, onCommit, className, showCaret, caretColor = "var(--color-orange)" }: NumberDisplayProps) {
   const [editing, setEditing] = useState(false);
   const [buf, setBuf] = useState<string>("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -35,8 +37,22 @@ export default function NumberDisplay({ formatted, rawValue, onCommit, className
 
   return (
     <div className={clsx("relative", className)}>
-      <div className="num-display leading-none tabular-nums">
+      <div className="num-display leading-none tabular-nums whitespace-nowrap">
         {editing ? (buf || "0") : formatted}
+        {!editing && showCaret && (
+          <span
+            aria-hidden
+            style={{
+              display: "inline-block",
+              width: 3,
+              height: "0.7em",
+              background: caretColor,
+              marginLeft: 4,
+              verticalAlign: "baseline",
+              animation: "lcd-blink 1.1s steps(2) infinite",
+            }}
+          />
+        )}
       </div>
       <input
         ref={inputRef}

@@ -1,0 +1,18 @@
+{
+  "name": "Americanizer",
+  "short_name": "Americanizer",
+  "description": "Tactile metric / US unit converter",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4f4f0",
+  "theme_color": "#f4f4f0",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

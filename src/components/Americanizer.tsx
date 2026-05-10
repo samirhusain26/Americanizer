@@ -38,8 +38,8 @@ const TEMP_HOT: [number, number, number] = [255, 120, 40];     // safety orange
 const WEIGHT_EMPTY: [number, number, number] = [232, 234, 214];
 const WEIGHT_HEAVY: [number, number, number] = [176, 172, 120];
 
-// Volume fill color (amber)
-const VOL_FILL: [number, number, number] = [240, 196, 48];
+// Volume fill color (deep amber — saturated enough to read against LCD green)
+const VOL_FILL: [number, number, number] = [214, 138, 20];
 
 export default function Americanizer() {
   const setActive = useConverter((s) => s.setActive);
@@ -151,19 +151,25 @@ export default function Americanizer() {
       if (current.category === "volume") {
         const fill = clamp(vol / 5, 0, 1);
         const fillPct = fill * 100;
-        // Liquid layer on top of the default LCD green: amber from the bottom up
-        // to `fillPct`, transparent above so the shell shows through.
-        const amber = rgb(VOL_FILL, 0.88);
-        const liquid = `linear-gradient(0deg, ${amber} 0%, ${amber} ${fillPct}%, rgba(240,196,48,0) ${fillPct}%, rgba(240,196,48,0) 100%)`;
-        const base = "linear-gradient(180deg, #d8dcc6 0%, #c6caaf 100%)";
-        return `${stripes}, ${liquid}, ${base}`;
+        // Hard-edged amber fill from the bottom. Using solid colors (no alpha)
+        // guarantees the fill reads against the LCD stripes; a meniscus band at
+        // the waterline sells the "liquid" feel.
+        const amberTop = rgb([232, 168, 40]);
+        const amberBot = rgb([196, 122, 12]);
+        const empty = "#d8dcc6";
+        const meniscus = Math.max(0, fillPct - 2);
+        const liquid =
+          `linear-gradient(0deg, ${amberBot} 0%, ${amberTop} ${meniscus}%,` +
+          ` rgba(255,230,140,0.9) ${meniscus}% ${fillPct}%,` +
+          ` ${empty} ${fillPct}% 100%)`;
+        return `${stripes}, ${liquid}`;
       }
       if (current.category === "length") {
         // Stable green base, but overlaid with a ruler whose spacing
         // matches --rule-size (updated by its own transform below).
         const base = "linear-gradient(180deg, #d8dcc6 0%, #c6caaf 100%)";
         const ticks =
-          "repeating-linear-gradient(90deg, rgba(0,0,0,0.28) 0 1.5px, transparent 1.5px var(--rule-size, 10px))";
+          "repeating-linear-gradient(90deg, rgba(0,0,0,0.08) 0 1px, transparent 1px var(--rule-size, 10px))";
         return `${ticks}, ${stripes}, ${base}`;
       }
       return "var(--lcd-bg-default)";

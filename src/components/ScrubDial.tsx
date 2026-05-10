@@ -6,25 +6,11 @@ import { useCallback, useRef } from "react";
 import { clickHaptic } from "@/lib/haptics";
 
 interface ScrubDialProps {
-  /** Current numeric value (display only — drives the indicator angle). */
   value: number;
-  /** Called with a delta to apply: parent owns truth, applies via store. */
   onDelta: (delta: number) => void;
-  /** Optional minimum value (used to compute velocity step floor). */
-  min?: number;
-  /** Visual diameter (px). */
   size?: number;
 }
 
-/**
- * Velocity-tiered step.
- * Slow scrub  → 0.1
- * Medium      → 1
- * Fast flick  → 10
- * Hard flick  → 100
- *
- * Velocity is in px/ms (use-gesture units). Empirical thresholds.
- */
 function stepFromVelocity(vAbs: number): number {
   if (vAbs < 0.4) return 0.1;
   if (vAbs < 1.4) return 1;
@@ -32,16 +18,12 @@ function stepFromVelocity(vAbs: number): number {
   return 100;
 }
 
-export default function ScrubDial({ value, onDelta, size = 220 }: ScrubDialProps) {
-  // Cumulative pixel travel since drag-start, used to throttle detents to a fixed pixel pitch.
-  const accumPx = useRef(0);
+export default function ScrubDial({ value, onDelta, size = 240 }: ScrubDialProps) {
   const lastDetentBucket = useRef(0);
-  // 12 px per detent feels right for a knob this size.
   const PX_PER_DETENT = 12;
 
-  // Indicator rotation: each unit of value rotates the indicator ~6deg, but we wrap visually.
+  const jolt = useMotionValue(0);
   const rotation = useMotionValue(0);
-  const jolt = useMotionValue(0); // 1px rim jolt per detent
 
   const tickJolt = useCallback(() => {
     jolt.set(1);
@@ -49,15 +31,10 @@ export default function ScrubDial({ value, onDelta, size = 220 }: ScrubDialProps
   }, [jolt]);
 
   const bind = useDrag(
-    ({ first, last, movement: [mx, my], velocity: [vx, vy], direction: [dx] }) => {
-      if (first) {
-        accumPx.current = 0;
-        lastDetentBucket.current = 0;
-      }
+    ({ first, last, movement: [mx, my], velocity: [vx, vy] }) => {
+      if (first) lastDetentBucket.current = 0;
 
-      // Combine horizontal + vertical pointer travel; up/right = increase.
       const linear = mx - my;
-      accumPx.current = linear;
       const bucket = Math.trunc(linear / PX_PER_DETENT);
 
       if (bucket !== lastDetentBucket.current) {
@@ -67,54 +44,72 @@ export default function ScrubDial({ value, onDelta, size = 220 }: ScrubDialProps
         const v = Math.max(Math.abs(vx), Math.abs(vy));
         const step = stepFromVelocity(v);
         const sign = detents > 0 ? 1 : -1;
-        const magnitude = Math.abs(detents) * step;
-
-        onDelta(sign * magnitude);
-        rotation.set(rotation.get() + sign * 18); // visual feedback
+        onDelta(sign * Math.abs(detents) * step);
+        rotation.set(rotation.get() + sign * 18);
         tickJolt();
         clickHaptic(Math.min(1, 0.3 + v * 0.3));
       }
-
-      if (last) {
-        // Snap rotation back near the resting indicator angle for the value.
-        // The actual indicator angle is computed off `value` below.
-        rotation.set(0);
-      }
-      // suppress unused
-      void dx;
+      if (last) rotation.set(0);
     },
     { axis: undefined, filterTaps: true, pointer: { capture: true } }
   );
 
-  // Resting indicator angle: a non-linear wrap so the knob feels infinite.
-  // Map fractional part of value to 0..360 deg.
   const restAngle = ((value % 36) / 36) * 360;
-  const rotateY = useTransform(jolt, [0, 1], [0, -1]);
+  const joltY = useTransform(jolt, [0, 1], [0, -1]);
+
+  const half = size / 2;
 
   return (
     <div className="flex items-center justify-center select-none">
       <motion.div
         className="relative touch-none cursor-grab active:cursor-grabbing"
-        style={{ width: size, height: size, y: rotateY }}
+        style={{ width: size, height: size, y: joltY }}
       >
-        <div {...bind()} className="absolute inset-0 z-10 rounded-full" />
-        {/* Outer ring */}
+        {/* Drag surface */}
+        <div {...bind()} className="absolute inset-0 z-20 rounded-full" />
+
+        {/* Hard drop shadow (offset, no blur) */}
         <div
-          className="absolute inset-0 rounded-full"
+          className="absolute rounded-full bg-ink"
           style={{
-            background:
-              "radial-gradient(circle at 30% 25%, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 55%), radial-gradient(circle at 70% 80%, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 60%), #1b1a16",
-            boxShadow:
-              "inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -1px 0 rgba(0,0,0,0.6), 0 24px 60px -20px rgba(0,0,0,0.7)",
+            inset: 0,
+            transform: "translate(6px, 6px)",
+            background: "var(--color-ink)",
           }}
         />
 
-        {/* Tick ring */}
-        <svg viewBox="-50 -50 100 100" className="absolute inset-0 w-full h-full text-paper/35">
-          {Array.from({ length: 60 }).map((_, i) => {
-            const angle = (i / 60) * Math.PI * 2;
-            const r1 = 44;
-            const r2 = i % 5 === 0 ? 39 : 41.5;
+        {/* Outer bezel — chunky white ring */}
+        <div
+          className="absolute inset-0 rounded-full"
+          style={{
+            background: "var(--color-shell)",
+            border: "1.5px solid var(--color-ink)",
+          }}
+        />
+
+        {/* Knurled ring */}
+        <div
+          className="absolute rounded-full knurl"
+          style={{
+            inset: "6%",
+            border: "1.5px solid var(--color-ink)",
+            maskImage:
+              "radial-gradient(circle, transparent 58%, #000 58.5%, #000 100%)",
+            WebkitMaskImage:
+              "radial-gradient(circle, transparent 58%, #000 58.5%, #000 100%)",
+          }}
+        />
+
+        {/* Tick marks on inner chassis */}
+        <svg
+          viewBox={`-${half} -${half} ${size} ${size}`}
+          className="absolute inset-0 w-full h-full pointer-events-none"
+        >
+          {Array.from({ length: 48 }).map((_, i) => {
+            const angle = (i / 48) * Math.PI * 2 - Math.PI / 2;
+            const major = i % 4 === 0;
+            const r1 = half * 0.58;
+            const r2 = half * (major ? 0.50 : 0.54);
             const x1 = Math.cos(angle) * r1;
             const y1 = Math.sin(angle) * r1;
             const x2 = Math.cos(angle) * r2;
@@ -122,34 +117,49 @@ export default function ScrubDial({ value, onDelta, size = 220 }: ScrubDialProps
             return (
               <line
                 key={i}
-                x1={x1}
-                y1={y1}
-                x2={x2}
-                y2={y2}
-                stroke="currentColor"
-                strokeWidth={i % 5 === 0 ? 0.8 : 0.4}
-                strokeLinecap="round"
+                x1={x1} y1={y1} x2={x2} y2={y2}
+                stroke="var(--color-ink)"
+                strokeWidth={major ? 1.5 : 0.8}
+                strokeLinecap="square"
               />
             );
           })}
         </svg>
 
-        {/* Inner knurled disc + indicator */}
+        {/* Inner rotating disc — off-white face */}
         <motion.div
-          className="absolute inset-[10%] rounded-full"
+          className="absolute rounded-full"
           style={{
-            background:
-              "conic-gradient(from 0deg, #1f1d18, #2a2823, #1f1d18, #2a2823, #1f1d18, #2a2823, #1f1d18)",
+            inset: "20%",
+            background: "var(--color-shell-2)",
+            border: "1.5px solid var(--color-ink)",
             rotate: restAngle,
+            boxShadow: "inset 0 2px 0 rgba(255,255,255,0.6), inset 0 -2px 0 rgba(0,0,0,0.08)",
           }}
         >
-          {/* Indicator notch */}
+          {/* Orange indicator dot (TE signature) */}
           <div
-            className="absolute left-1/2 -translate-x-1/2 top-2 w-1.5 h-6 rounded-full"
-            style={{ background: "var(--color-accent)" }}
+            className="absolute"
+            style={{
+              left: "50%",
+              top: "8%",
+              width: 14,
+              height: 14,
+              transform: "translateX(-50%)",
+              borderRadius: 999,
+              background: "var(--color-orange)",
+              border: "1.5px solid var(--color-ink)",
+            }}
           />
           {/* Center hub */}
-          <div className="absolute inset-[28%] rounded-full bg-[#16140f] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]" />
+          <div
+            className="absolute rounded-full"
+            style={{
+              inset: "32%",
+              background: "var(--color-shell-3)",
+              border: "1.5px solid var(--color-ink)",
+            }}
+          />
         </motion.div>
       </motion.div>
     </div>

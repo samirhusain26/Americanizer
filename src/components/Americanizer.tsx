@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useConverter, selectActive, selectCategoryState, type Side } from "@/store/converter";
-import { CATEGORIES, convert } from "@/lib/units";
+import { CATEGORIES, convert, type CategoryId } from "@/lib/units";
 import { formatForUnit } from "@/lib/format";
 import NumberDisplay from "./NumberDisplay";
 import UnitPill from "./UnitPill";
@@ -10,6 +10,13 @@ import UnitDrawer from "./UnitDrawer";
 import ScrubDial from "./ScrubDial";
 import SwapButton from "./SwapButton";
 import CategoryDock from "./CategoryDock";
+
+const ACCENT_BY_CATEGORY: Record<CategoryId, "orange" | "lime" | "cyan"> = {
+  temperature: "orange",
+  weight: "lime",
+  length: "cyan",
+  volume: "orange",
+};
 
 export default function Americanizer() {
   const setActive = useConverter((s) => s.setActive);
@@ -38,61 +45,96 @@ export default function Americanizer() {
 
   const fromLabel = current.def.units.find((u) => u.id === current.fromUnit)!.label;
   const toLabel = current.def.units.find((u) => u.id === current.toUnit)!.label;
+  const accent = ACCENT_BY_CATEGORY[current.category];
 
   return (
-    <main className="relative min-h-[100dvh] flex flex-col bg-canvas text-paper overflow-hidden">
-      {/* Status row */}
-      <header className="px-6 pt-[calc(env(safe-area-inset-top)+18px)] pb-2 flex items-center justify-between">
-        <span className="ui-mono uppercase text-[11px] tracking-[0.25em] text-paper/55">
-          Americanizer
-        </span>
-        <span className="ui-mono uppercase text-[11px] tracking-[0.25em] text-paper/55">
-          {current.def.label}
+    <main
+      className="relative min-h-[100dvh] flex flex-col overflow-hidden"
+      style={{ background: "var(--color-shell)", color: "var(--color-ink)" }}
+    >
+      {/* Chassis header */}
+      <header
+        className="px-5 pt-[calc(env(safe-area-inset-top)+14px)] pb-3 flex items-center justify-between rule-b"
+        style={{ background: "var(--color-shell-2)" }}
+      >
+        <div className="flex items-center gap-2">
+          <span
+            className="w-2.5 h-2.5 rounded-full"
+            style={{ background: "var(--color-orange)", border: "1px solid var(--color-ink)" }}
+          />
+          <span className="ui-mono uppercase text-[11px] tracking-[0.28em]">
+            AMERICANIZER
+          </span>
+        </div>
+        <span className="ui-mono uppercase text-[10px] tracking-[0.28em] text-[color:var(--color-ink-soft)]">
+          {current.def.label} / v1
         </span>
       </header>
 
-      {/* Zone 1 — FROM */}
-      <section className="px-6 pt-6">
-        <div className="flex items-end gap-3">
+      {/* Zone 1 — FROM screen */}
+      <section className="px-5 pt-5 pb-5 rule-b">
+        <div className="flex items-center justify-between mb-2">
+          <span className="ui-mono uppercase text-[10px] tracking-[0.28em] text-[color:var(--color-ink-soft)]">
+            INPUT / FROM
+          </span>
+          <UnitPill label={fromLabel} onClick={() => setDrawer("from")} accent={accent} />
+        </div>
+        <div
+          className="lcd rounded-2xl px-5 py-5"
+          style={{ border: "1.5px solid var(--color-ink)" }}
+        >
           <NumberDisplay
-            className="text-[6.5rem] sm:text-[8rem] flex-1 min-w-0"
+            className="text-[5rem] sm:text-[6.5rem] leading-none"
             formatted={fromText}
             rawValue={current.fromVal}
             onCommit={(n) => setValue("from", n)}
           />
-          <UnitPill label={fromLabel} onClick={() => setDrawer("from")} className="mb-3" />
         </div>
       </section>
 
       {/* Zone 2 — engine */}
-      <section className="flex-1 flex flex-col items-center justify-center gap-4">
+      <section
+        className="flex-1 flex items-center justify-center gap-6 py-6 rule-b"
+        style={{ background: "var(--color-shell-2)" }}
+      >
         <ScrubDial value={current.fromVal} onDelta={(d) => setValue("from", current.fromVal + d)} />
-        <SwapButton onSwap={swap} />
+        <div className="flex flex-col items-center gap-3">
+          <SwapButton onSwap={swap} />
+          <span className="ui-mono uppercase text-[9px] tracking-[0.28em] text-[color:var(--color-ink-soft)]">
+            SWAP
+          </span>
+        </div>
       </section>
 
-      {/* Zone 3 — TO */}
-      <section className="px-6 pb-2">
-        <div className="flex items-end gap-3">
+      {/* Zone 3 — TO screen */}
+      <section className="px-5 pt-5 pb-5 rule-b">
+        <div className="flex items-center justify-between mb-2">
+          <span className="ui-mono uppercase text-[10px] tracking-[0.28em] text-[color:var(--color-ink-soft)]">
+            OUTPUT / TO
+          </span>
+          <UnitPill label={toLabel} onClick={() => setDrawer("to")} accent={accent} />
+        </div>
+        <div
+          className="lcd rounded-2xl px-5 py-5"
+          style={{ border: "1.5px solid var(--color-ink)" }}
+        >
           <NumberDisplay
-            className="text-[6.5rem] sm:text-[8rem] flex-1 min-w-0 text-paper/85"
+            className="text-[5rem] sm:text-[6.5rem] leading-none"
             formatted={toText}
             rawValue={current.toVal}
             onCommit={(n) => setValue("to", n)}
           />
-          <UnitPill label={toLabel} onClick={() => setDrawer("to")} className="mb-3" />
         </div>
       </section>
 
-      {/* Dock */}
       <CategoryDock active={current.category} onChange={setActive} />
 
-      {/* Drawers */}
       <UnitDrawer
         open={drawer === "from"}
         onOpenChange={(o) => setDrawer(o ? "from" : null)}
         category={current.def}
         selectedUnitId={current.fromUnit}
-        title={`${current.def.label} — From`}
+        title={`${current.def.label} / FROM`}
         onSelect={(id) => setUnit("from", id)}
       />
       <UnitDrawer
@@ -100,7 +142,7 @@ export default function Americanizer() {
         onOpenChange={(o) => setDrawer(o ? "to" : null)}
         category={current.def}
         selectedUnitId={current.toUnit}
-        title={`${current.def.label} — To`}
+        title={`${current.def.label} / TO`}
         onSelect={(id) => setUnit("to", id)}
       />
     </main>

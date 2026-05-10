@@ -7,6 +7,7 @@ interface NumberDisplayProps {
   formatted: string;        // pre-formatted display string
   rawValue: number;         // numeric value (used to seed editing buffer)
   onCommit: (n: number) => void;
+  onFocus?: () => void;
   className?: string;
   showCaret?: boolean;      // blinking accent caret when this zone is active
   caretColor?: string;
@@ -17,7 +18,7 @@ interface NumberDisplayProps {
  * an absolutely-positioned, transparent <input inputMode="decimal"> sits over
  * it to summon the native numeric keypad on tap.
  */
-export default function NumberDisplay({ formatted, rawValue, onCommit, className, showCaret, caretColor = "var(--color-orange)" }: NumberDisplayProps) {
+export default function NumberDisplay({ formatted, rawValue, onCommit, onFocus, className, showCaret, caretColor = "var(--color-orange)" }: NumberDisplayProps) {
   const [editing, setEditing] = useState(false);
   const [buf, setBuf] = useState<string>("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -69,7 +70,7 @@ export default function NumberDisplay({ formatted, rawValue, onCommit, className
         data-lpignore="true"
         data-form-type="other"
         value={editing ? buf : ""}
-        onFocus={() => setEditing(true)}
+        onFocus={() => { setEditing(true); onFocus?.(); }}
         onChange={(e) => setBuf(sanitize(e.target.value))}
         onBlur={commit}
         onKeyDown={(e) => {

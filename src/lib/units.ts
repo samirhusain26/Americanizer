@@ -1,4 +1,4 @@
-export type CategoryId = "temperature" | "weight" | "length" | "volume";
+export type CategoryId = "temperature" | "weight" | "length" | "volume" | "speed" | "area";
 
 export type UnitSystem = "metric" | "us";
 
@@ -99,14 +99,49 @@ export const VOLUME: CategoryDef = {
   ],
 };
 
+export const SPEED: CategoryDef = {
+  id: "speed",
+  label: "Speed",
+  baseUnit: "ms",
+  defaultFrom: "kmh",
+  defaultTo: "mph",
+  defaultValueFrom: 100,
+  units: [
+    { id: "ms",    label: "m/s",  longLabel: "Meters/second",    system: "metric", ...linear(1) },
+    { id: "kmh",   label: "km/h", longLabel: "Kilometers/hour",  system: "metric", ...linear(1 / 3.6) },
+    { id: "mph",   label: "mph",  longLabel: "Miles/hour",       system: "us",     ...linear(0.44704) },
+    { id: "knots", label: "kn",   longLabel: "Knots",            system: "us",     ...linear(0.514444) },
+  ],
+};
+
+export const AREA: CategoryDef = {
+  id: "area",
+  label: "Area",
+  baseUnit: "m2",
+  defaultFrom: "m2",
+  defaultTo: "ft2",
+  defaultValueFrom: 100,
+  units: [
+    { id: "cm2", label: "cm²", longLabel: "Sq. Centimeter", system: "metric", ...linear(0.0001) },
+    { id: "m2",  label: "m²",  longLabel: "Sq. Meter",      system: "metric", ...linear(1) },
+    { id: "ha",  label: "ha",  longLabel: "Hectare",         system: "metric", ...linear(10000) },
+    { id: "km2", label: "km²", longLabel: "Sq. Kilometer",   system: "metric", ...linear(1e6) },
+    { id: "in2", label: "in²", longLabel: "Sq. Inch",        system: "us",     ...linear(0.00064516) },
+    { id: "ft2", label: "ft²", longLabel: "Sq. Foot",        system: "us",     ...linear(0.092903) },
+    { id: "ac",  label: "ac",  longLabel: "Acre",             system: "us",     ...linear(4046.86) },
+  ],
+};
+
 export const CATEGORIES: Record<CategoryId, CategoryDef> = {
   temperature: TEMPERATURE,
   weight: WEIGHT,
   length: LENGTH,
   volume: VOLUME,
+  speed: SPEED,
+  area: AREA,
 };
 
-export const CATEGORY_ORDER: CategoryId[] = ["temperature", "weight", "length", "volume"];
+export const CATEGORY_ORDER: CategoryId[] = ["temperature", "weight", "length", "volume", "speed", "area"];
 
 export function getUnit(category: CategoryId, unitId: string): UnitDef {
   const u = CATEGORIES[category].units.find((x) => x.id === unitId);

@@ -35,7 +35,7 @@ export default function Americanizer() {
   const active          = useConverter(selectActive);
   const cat             = useConverter(selectCategoryState);
 
-  const { lastUpdated, isLoading, refresh } = useFxRates();
+  const { lastUpdated, isLoading, onCooldown, refresh } = useFxRates();
 
   // lastUpdated is included so toVal recomputes when live rates arrive
   const current = useMemo(() => {
@@ -185,12 +185,12 @@ export default function Americanizer() {
     return clamp(Math.abs(v) / max, 0, 1);
   });
 
-  // Currency: emerald radial bloom from the bottom — intensifies as USD value grows
+  // Currency: emerald fill rises from bottom — intensifies as USD value grows
   const moneyGradient = useTransform(currencyUsd, (usd) => {
     if (current.category !== "currency") return "none";
     const t = clamp(Math.abs(usd) / 10_000, 0, 1);
-    const a = lerp(0, 0.28, t).toFixed(2);
-    return `radial-gradient(ellipse 140% 60% at 50% 110%, rgba(16, 185, 129, ${a}), transparent 60%)`;
+    const a = lerp(0, 0.22, t).toFixed(2);
+    return `linear-gradient(to top, rgba(16, 185, 129, ${a}) 0%, rgba(16, 185, 129, ${(parseFloat(a) * 0.3).toFixed(2)}) 40%, transparent 75%)`;
   });
 
   return (
@@ -296,13 +296,13 @@ export default function Americanizer() {
               <button
                 onClick={(e) => { e.stopPropagation(); void refresh(); }}
                 onPointerDown={(e) => e.stopPropagation()}
-                disabled={isLoading}
+                disabled={isLoading || onCooldown}
                 aria-label="Refresh exchange rates"
                 style={{
                   width: 28, height: 28, borderRadius: "50%",
                   border: "none", background: "transparent",
-                  color: "var(--color-ink-muted)", cursor: "pointer",
-                  opacity: isLoading ? 0.25 : 0.45,
+                  color: "var(--color-ink-muted)", cursor: isLoading || onCooldown ? "default" : "pointer",
+                  opacity: isLoading || onCooldown ? 0.2 : 0.45,
                   display: "flex", alignItems: "center", justifyContent: "center",
                   padding: 0, transition: "opacity 0.2s ease",
                 }}
@@ -315,13 +315,15 @@ export default function Americanizer() {
                   <path d="M3.51 15a9 9 0 1 0 .49-4.5L1 10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
-              <span style={{
-                fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase",
-                color: "var(--color-ink-muted)", opacity: 0.55, fontWeight: 500,
-                userSelect: "none",
-              }}>
-                {formatRateAge(lastUpdated)}
-              </span>
+              {formatRateAge(lastUpdated) && (
+                <span style={{
+                  fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase",
+                  color: "var(--color-ink-muted)", opacity: 0.55, fontWeight: 500,
+                  userSelect: "none",
+                }}>
+                  {formatRateAge(lastUpdated)}
+                </span>
+              )}
             </div>
           )}
         </section>
@@ -433,13 +435,13 @@ function ValueRow({
         {unitName}
       </div>
 
-      <div className="flex items-baseline justify-center gap-5">
+      <div className="flex items-baseline justify-center gap-4 px-2">
         <div
-          className="min-w-0 overflow-hidden"
+          className="min-w-0"
           onClick={(e) => e.stopPropagation()}
         >
           <NumberDisplay
-            className="text-[120px] sm:text-[144px] leading-none"
+            className="text-[88px] sm:text-[108px] leading-none"
             formatted={formatted}
             rawValue={rawValue}
             onCommit={onCommit}

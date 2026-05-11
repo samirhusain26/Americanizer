@@ -241,6 +241,9 @@ function snapToNice(v: number): number {
  * the full visual range of the given unit. Each tier is 5× the previous.
  */
 export function getStepConfig(category: CategoryId, unitId: string): StepConfig {
+  if (category === "currency") {
+    return { slow: 1, medium: 10, fast: 100, turbo: 1000 };
+  }
   const maxBase = getVisualMax(category, unitId);
   const unitDef = CATEGORIES[category].units.find((u) => u.id === unitId);
   // Use delta-from-zero to handle affine units (°F, K) correctly

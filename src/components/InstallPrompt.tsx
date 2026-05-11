@@ -79,19 +79,19 @@ export default function InstallPrompt() {
             transition={{ type: "spring", stiffness: 320, damping: 28 }}
             className="relative w-full max-w-md m-4 rounded-3xl"
             style={{
-              background: "var(--color-shell)",
-              border: "2px solid var(--color-ink)",
-              boxShadow: "6px 6px 0 0 var(--color-ink)",
+              background: "#FAFAFA",
+              border: "2px solid #000000",
+              boxShadow: "6px 6px 0 0 #000000",
             }}
           >
-            <div className="px-6 pt-5 pb-4 border-b-2" style={{ borderColor: "var(--color-ink)" }}>
-              <div className="ui-mono text-[11px] tracking-[0.18em] uppercase" style={{ color: "var(--color-ink-soft)" }}>
+            <div className="px-6 pt-5 pb-4 border-b-2" style={{ borderColor: "#000000" }}>
+              <div className="ui-mono text-[11px] tracking-[0.18em] uppercase" style={{ color: "#666666" }}>
                 Install
               </div>
-              <div className="num-display text-[28px] leading-none mt-1" style={{ color: "var(--color-ink)" }}>
+              <div className="num-display text-[28px] leading-none mt-1" style={{ color: "#000000" }}>
                 Add to Home Screen
               </div>
-              <div className="text-[13px] mt-2 leading-[1.5]" style={{ color: "var(--color-ink-soft)" }}>
+              <div className="text-[13px] mt-2 leading-[1.5]" style={{ color: "#555555" }}>
                 Get the full tactile experience. Runs offline, launches from your home screen like a native app.
               </div>
             </div>
@@ -119,16 +119,16 @@ export default function InstallPrompt() {
 
             <div
               className="px-6 py-4 flex items-center justify-end gap-3 border-t-2"
-              style={{ borderColor: "var(--color-ink)", background: "var(--color-shell-2)" }}
+              style={{ borderColor: "#000000", background: "#F0F0F0", borderRadius: "0 0 1.5rem 1.5rem" }}
             >
               <button
                 type="button"
                 onClick={dismiss}
                 className="num-display text-[14px] px-4 py-2 rounded-xl"
                 style={{
-                  background: "var(--color-ink)",
-                  color: "var(--color-shell)",
-                  boxShadow: "3px 3px 0 0 var(--color-ink)",
+                  background: "#000000",
+                  color: "#FAFAFA",
+                  boxShadow: "3px 3px 0 0 #333333",
                 }}
               >
                 Got it
@@ -154,20 +154,20 @@ function InstructionBlock({
     <div
       className="rounded-2xl p-4"
       style={{
-        background: highlighted ? "var(--color-lime)" : "var(--color-shell-2)",
-        border: "2px solid var(--color-ink)",
+        background: highlighted ? "#ECFDF5" : "#F0F0F0",
+        border: "2px solid #000000",
       }}
     >
-      <div className="ui-mono text-[11px] tracking-[0.18em] uppercase mb-2" style={{ color: "var(--color-ink)" }}>
+      <div className="ui-mono text-[11px] tracking-[0.18em] uppercase mb-2" style={{ color: "#000000" }}>
         {title}
         {highlighted && <span className="ml-2 opacity-60">— detected</span>}
       </div>
-      <ol className="space-y-1.5 text-[13px] leading-[1.5]" style={{ color: "var(--color-ink)" }}>
+      <ol className="space-y-1.5 text-[13px] leading-[1.5]" style={{ color: "#000000" }}>
         {steps.map((s, i) => (
           <li key={i} className="flex gap-2">
             <span
               className="ui-mono text-[11px] min-w-5 h-5 flex items-center justify-center rounded-full"
-              style={{ background: "var(--color-ink)", color: "var(--color-shell)" }}
+              style={{ background: "#000000", color: "#FAFAFA" }}
             >
               {i + 1}
             </span>
@@ -184,8 +184,8 @@ function Badge({ children }: { children: React.ReactNode }) {
     <span
       className="ui-mono text-[11px] px-1.5 py-0.5 rounded-md"
       style={{
-        background: "var(--color-shell)",
-        border: "1.5px solid var(--color-ink)",
+        background: "#FFFFFF",
+        border: "1.5px solid #000000",
       }}
     >
       {children}

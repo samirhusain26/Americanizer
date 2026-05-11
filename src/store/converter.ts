@@ -34,12 +34,13 @@ interface ConverterState {
 }
 
 const HUMAN_BASELINE: Record<CategoryId, CategoryState> = {
-  temperature: { fromUnit: "c",   toUnit: "f",   value: 22 },
-  weight:      { fromUnit: "kg",  toUnit: "lb",  value: 70 },
-  length:      { fromUnit: "m",   toUnit: "in",  value: 1 },
+  temperature: { fromUnit: "c",   toUnit: "f",    value: 22 },
+  currency:    { fromUnit: "usd", toUnit: "inr",  value: 100 },
+  weight:      { fromUnit: "kg",  toUnit: "lb",   value: 70 },
+  length:      { fromUnit: "m",   toUnit: "in",   value: 1 },
   volume:      { fromUnit: "l",   toUnit: "floz", value: 1 },
-  speed:       { fromUnit: "kmh", toUnit: "mph", value: 100 },
-  area:        { fromUnit: "m2",  toUnit: "ft2", value: 100 },
+  speed:       { fromUnit: "kmh", toUnit: "mph",  value: 100 },
+  area:        { fromUnit: "m2",  toUnit: "ft2",  value: 100 },
 };
 
 export const useConverter = create<ConverterState>()(
@@ -105,11 +106,20 @@ export const useConverter = create<ConverterState>()(
     }),
     {
       name: "americanizer:v1",
-      // Hydration safety: only persist what we need.
       partialize: (s) => ({ active: s.active, perCategory: s.perCategory }),
+      // Spread defaults first so any category added after a prior save gets its baseline.
+      merge: (persisted, current) => {
+        const p = persisted as { active?: CategoryId; perCategory?: Partial<Record<CategoryId, CategoryState>> };
+        return {
+          ...current,
+          ...(p.active ? { active: p.active } : {}),
+          perCategory: { ...current.perCategory, ...p.perCategory },
+        };
+      },
     }
   )
 );
 
 export const selectActive = (s: ConverterState) => s.active;
-export const selectCategoryState = (s: ConverterState) => s.perCategory[s.active];
+export const selectCategoryState = (s: ConverterState) =>
+  s.perCategory[s.active] ?? HUMAN_BASELINE[s.active];

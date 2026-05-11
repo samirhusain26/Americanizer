@@ -1,6 +1,6 @@
-export type CategoryId = "temperature" | "weight" | "length" | "volume" | "speed" | "area";
+export type CategoryId = "temperature" | "weight" | "length" | "volume" | "speed" | "area" | "currency";
 
-export type UnitSystem = "metric" | "us";
+export type UnitSystem = "metric" | "us" | "currency";
 
 export interface UnitDef {
   id: string;
@@ -24,6 +24,8 @@ export interface CategoryDef {
   /** The default value displayed in the FROM unit at first hydrate. */
   defaultValueFrom: number;
 }
+
+import { getRate } from "./fx";
 
 const linear = (factor: number): Pick<UnitDef, "toBase" | "fromBase"> => ({
   toBase: (v) => v * factor,
@@ -132,6 +134,31 @@ export const AREA: CategoryDef = {
   ],
 };
 
+const fxUnit = (code: string): Pick<UnitDef, "toBase" | "fromBase"> => ({
+  toBase: (v) => v / getRate(code),
+  fromBase: (v) => v * getRate(code),
+});
+
+export const CURRENCY: CategoryDef = {
+  id: "currency",
+  label: "Currency",
+  baseUnit: "usd",
+  defaultFrom: "usd",
+  defaultTo: "inr",
+  defaultValueFrom: 100,
+  units: [
+    { id: "usd", label: "USD", longLabel: "US Dollar",         system: "currency", toBase: (v) => v, fromBase: (v) => v },
+    { id: "inr", label: "INR", longLabel: "Indian Rupee",      system: "currency", ...fxUnit("INR") },
+    { id: "eur", label: "EUR", longLabel: "Euro",              system: "currency", ...fxUnit("EUR") },
+    { id: "gbp", label: "GBP", longLabel: "British Pound",     system: "currency", ...fxUnit("GBP") },
+    { id: "jpy", label: "JPY", longLabel: "Japanese Yen",      system: "currency", ...fxUnit("JPY") },
+    { id: "cad", label: "CAD", longLabel: "Canadian Dollar",   system: "currency", ...fxUnit("CAD") },
+    { id: "aud", label: "AUD", longLabel: "Australian Dollar", system: "currency", ...fxUnit("AUD") },
+    { id: "chf", label: "CHF", longLabel: "Swiss Franc",       system: "currency", ...fxUnit("CHF") },
+    { id: "cny", label: "CNY", longLabel: "Chinese Yuan",      system: "currency", ...fxUnit("CNY") },
+  ],
+};
+
 export const CATEGORIES: Record<CategoryId, CategoryDef> = {
   temperature: TEMPERATURE,
   weight: WEIGHT,
@@ -139,9 +166,10 @@ export const CATEGORIES: Record<CategoryId, CategoryDef> = {
   volume: VOLUME,
   speed: SPEED,
   area: AREA,
+  currency: CURRENCY,
 };
 
-export const CATEGORY_ORDER: CategoryId[] = ["temperature", "weight", "length", "volume", "speed", "area"];
+export const CATEGORY_ORDER: CategoryId[] = ["temperature", "currency", "weight", "length", "volume", "speed", "area"];
 
 export function getUnit(category: CategoryId, unitId: string): UnitDef {
   const u = CATEGORIES[category].units.find((x) => x.id === unitId);
@@ -177,6 +205,8 @@ export function getVisualMax(category: CategoryId, unitId: string): number {
       return 100;
     case "temperature":
       return 40; // ~40°C covers the interesting gradient window for step calibration
+    case "currency":
+      return 2000; // $2000 USD ceiling — step calibration + gradient range
     default:
       return 1;
   }

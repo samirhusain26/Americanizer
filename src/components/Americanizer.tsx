@@ -5,6 +5,7 @@ import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { useConverter, selectActive, selectCategoryState, type Side } from "@/store/converter";
 import { CATEGORIES, CATEGORY_ORDER, convert, getVisualMax, getStepConfig, type CategoryId } from "@/lib/units";
 import { formatForUnit } from "@/lib/format";
+import { useFxRates, formatRateAge } from "@/lib/fx";
 import { clamp, lerp, lerpColor } from "@/lib/math";
 import NumberDisplay from "./NumberDisplay";
 import UnitPill from "./UnitPill";
@@ -17,6 +18,7 @@ type ActiveZone = "from" | "to";
 
 const CATEGORY_ACCENT: Record<CategoryId, string> = {
   temperature: "#FF3300",
+  currency:    "#10B981",
   weight:      "#32CD32",
   length:      "#00FFFF",
   volume:      "#FFD700",
@@ -33,6 +35,9 @@ export default function Americanizer() {
   const active          = useConverter(selectActive);
   const cat             = useConverter(selectCategoryState);
 
+  const { lastUpdated, isLoading, refresh } = useFxRates();
+
+  // lastUpdated is included so toVal recomputes when live rates arrive
   const current = useMemo(() => {
     const def = CATEGORIES[active];
     return {
@@ -41,9 +46,11 @@ export default function Americanizer() {
       fromUnit: cat.fromUnit,
       toUnit:   cat.toUnit,
       fromVal:  cat.value,
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       toVal:    convert(active, cat.value, cat.fromUnit, cat.toUnit),
     };
-  }, [active, cat]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, cat, lastUpdated]);
 
   const [drawer, setDrawer] = useState<null | Side>(null);
   const [zone, setZone] = useState<ActiveZone>("from");
@@ -117,6 +124,12 @@ export default function Americanizer() {
     return u ? u.toBase(v) : v;
   });
 
+  const currencyUsd = useTransform(springed, (v) => {
+    if (current.category !== "currency") return 0;
+    const u = current.def.units.find((x) => x.id === current.fromUnit);
+    return u ? u.toBase(v) : v;
+  });
+
   // --- Visual effects ---
 
   // Temperature: ambient radial gradient — icy-blue at ≤0°C → neutral at 22°C → warm-orange at ≥45°C
@@ -172,6 +185,14 @@ export default function Americanizer() {
     return clamp(Math.abs(v) / max, 0, 1);
   });
 
+  // Currency: emerald radial bloom from the bottom — intensifies as USD value grows
+  const moneyGradient = useTransform(currencyUsd, (usd) => {
+    if (current.category !== "currency") return "none";
+    const t = clamp(Math.abs(usd) / 10_000, 0, 1);
+    const a = lerp(0, 0.28, t).toFixed(2);
+    return `radial-gradient(ellipse 140% 60% at 50% 110%, rgba(16, 185, 129, ${a}), transparent 60%)`;
+  });
+
   return (
     <div style={{ height: "100dvh", touchAction: "pan-y" }}>
       <motion.main
@@ -200,6 +221,15 @@ export default function Americanizer() {
             aria-hidden
             className="pointer-events-none absolute bottom-0 left-0 right-0 z-0"
             style={{ height: volFillHeight, background: "var(--color-accent)", opacity: 0.06 }}
+          />
+        )}
+
+        {/* Currency money-green bloom */}
+        {current.category === "currency" && (
+          <motion.div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 z-0"
+            style={{ backgroundImage: moneyGradient }}
           />
         )}
 
@@ -254,6 +284,44 @@ export default function Americanizer() {
           {current.category !== "temperature" && (
             <div className="absolute" style={{ top: 12, right: 16 }}>
               <SwapButton onSwap={swap} accent="var(--color-accent)" />
+            </div>
+          )}
+
+          {/* Currency rate refresh + age — bottom-left, mirrors mute button on the right */}
+          {current.category === "currency" && (
+            <div
+              className="absolute flex items-center gap-2"
+              style={{ left: 16, bottom: 20, zIndex: 20 }}
+            >
+              <button
+                onClick={(e) => { e.stopPropagation(); void refresh(); }}
+                onPointerDown={(e) => e.stopPropagation()}
+                disabled={isLoading}
+                aria-label="Refresh exchange rates"
+                style={{
+                  width: 28, height: 28, borderRadius: "50%",
+                  border: "none", background: "transparent",
+                  color: "var(--color-ink-muted)", cursor: "pointer",
+                  opacity: isLoading ? 0.25 : 0.45,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  padding: 0, transition: "opacity 0.2s ease",
+                }}
+              >
+                <svg
+                  width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden
+                  className={isLoading ? "animate-spin" : ""}
+                >
+                  <path d="M1 4v6h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M3.51 15a9 9 0 1 0 .49-4.5L1 10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              <span style={{
+                fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase",
+                color: "var(--color-ink-muted)", opacity: 0.55, fontWeight: 500,
+                userSelect: "none",
+              }}>
+                {formatRateAge(lastUpdated)}
+              </span>
             </div>
           )}
         </section>

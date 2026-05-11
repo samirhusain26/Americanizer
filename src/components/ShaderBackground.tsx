@@ -7,11 +7,12 @@ import type { CategoryId } from "@/lib/units";
 
 const CATEGORY_INDEX: Record<CategoryId, number> = {
   temperature: 0,
-  weight: 1,
-  length: 2,
-  volume: 3,
-  speed: 4,
-  area: 5,
+  currency:    1,
+  weight:      2,
+  length:      3,
+  volume:      4,
+  speed:       5,
+  area:        6,
 };
 
 const vertexShader = /* glsl */ `

@@ -1,11 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CATEGORIES, CATEGORY_ORDER, type CategoryId } from "@/lib/units";
+import { CATEGORY_ORDER, type CategoryId } from "@/lib/units";
 import { clickHaptic } from "@/lib/haptics";
 
 const LABELS: Record<CategoryId, string> = {
   temperature: "Temp",
+  currency:    "FX",
   weight:      "Mass",
   length:      "Dist",
   volume:      "Vol",
@@ -26,8 +27,8 @@ export default function CategoryDock({ active, onChange }: CategoryDockProps) {
         paddingTop: 12,
       }}
     >
-      <div className="flex items-end justify-around px-2">
-        {CATEGORY_ORDER.map((id) => {
+      <div className="flex items-end">
+        {CATEGORY_ORDER.map((id, index) => {
           const isActive = id === active;
           return (
             <button
@@ -39,13 +40,17 @@ export default function CategoryDock({ active, onChange }: CategoryDockProps) {
                   onChange(id);
                 }
               }}
-              className="relative flex flex-col items-center"
-              style={{ paddingBottom: 8, paddingTop: 4, minWidth: 44 }}
+              className="relative flex flex-1 flex-col items-center"
+              style={{
+                paddingBottom: 8,
+                paddingTop: 4,
+                borderLeft: index > 0 ? "1px solid rgba(163,163,163,0.25)" : "none",
+              }}
             >
               <span
                 style={{
-                  fontSize: 11,
-                  letterSpacing: "0.1em",
+                  fontSize: 10,
+                  letterSpacing: "0.08em",
                   textTransform: "uppercase",
                   fontWeight: isActive ? 600 : 400,
                   color: isActive ? "var(--color-ink-active)" : "var(--color-ink-muted)",

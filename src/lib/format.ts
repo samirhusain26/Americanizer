@@ -53,7 +53,40 @@ export function shouldUseCulinaryFraction(category: CategoryId, unitId: string):
   return category === "volume" && CULINARY_VOLUME_UNITS.has(unitId);
 }
 
+const CURRENCY_FMT: Record<string, { locale: string; code: string; decimals: number }> = {
+  usd: { locale: "en-US", code: "USD", decimals: 2 },
+  inr: { locale: "en-IN", code: "INR", decimals: 2 },
+  eur: { locale: "de-DE", code: "EUR", decimals: 2 },
+  gbp: { locale: "en-GB", code: "GBP", decimals: 2 },
+  jpy: { locale: "ja-JP", code: "JPY", decimals: 0 },
+  cad: { locale: "en-CA", code: "CAD", decimals: 2 },
+  aud: { locale: "en-AU", code: "AUD", decimals: 2 },
+  chf: { locale: "de-CH", code: "CHF", decimals: 2 },
+  cny: { locale: "zh-CN", code: "CNY", decimals: 2 },
+};
+
+function formatCurrency(unitId: string, value: number): string {
+  if (!isFinite(value)) return "—";
+  const cfg = CURRENCY_FMT[unitId] ?? CURRENCY_FMT.usd;
+  // Compact notation (K/M/B for en-US, K/L/Cr for en-IN) once the value hits 4 digits
+  if (Math.abs(value) >= 1000) {
+    return new Intl.NumberFormat(cfg.locale, {
+      style: "currency",
+      currency: cfg.code,
+      notation: "compact",
+      maximumSignificantDigits: 4,
+    }).format(value);
+  }
+  return new Intl.NumberFormat(cfg.locale, {
+    style: "currency",
+    currency: cfg.code,
+    minimumFractionDigits: cfg.decimals,
+    maximumFractionDigits: cfg.decimals,
+  }).format(value);
+}
+
 export function formatForUnit(category: CategoryId, unitId: string, value: number): string {
+  if (category === "currency") return formatCurrency(unitId, value);
   if (shouldUseCulinaryFraction(category, unitId)) return formatCulinaryFraction(value);
   return formatNumber(value);
 }

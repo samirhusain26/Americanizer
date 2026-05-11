@@ -20,6 +20,43 @@ npm run typecheck
 - Vaul for the unit drawer
 - `@react-three/fiber` is installed but the shader background is not yet wired
 
+## Design tokens (globals.css)
+
+```
+--color-canvas:     #FAFAFA   page background
+--color-ink-active: #000000   primary text/strokes
+--color-ink-muted:  #A3A3A3   labels, hints, inactive
+--color-accent:     #0055FF   active underline, accent rules, copy "✓"
+```
+
+Per-category accent colors (orange/lime/cyan/yellow) are documented in `_design_reference/` and the README roadmap but not yet wired into the live CSS.
+
+## Categories (6 total)
+
+Defined in `src/lib/units.ts` — `CATEGORY_ORDER` drives the dock order:
+
+| id          | Dock label | Default                | Notes                       |
+| ----------- | ---------- | ---------------------- | --------------------------- |
+| temperature | Temp       | 22 °C → 71.6 °F        | Fixed axis; no picker/swap  |
+| weight      | Mass       | 70 kg → 154.3 lb       | Font-weight motion effect   |
+| length      | Dist       | 1 m → 39.37 in         |                             |
+| volume      | Vol        | 1 L → 33.81 fl oz      | Culinary fractions; fill effect |
+| speed       | Speed      | 100 km/h → 62.1 mph    |                             |
+| area        | Area       | 100 m² → 1076.4 ft²    |                             |
+
+## UI layout
+
+Five vertical sections in `Americanizer.tsx`:
+
+1. **Header** — brand label (left) + active category label in accent (right).
+2. **Zone 1 (FROM)** — unit long-name above massive number; unit pill right. Active = full opacity + thin accent underline. Inactive = 30% opacity.
+3. **Zone 2 (Trackpad)** — full-area invisible drag surface. Contains gesture hint ("Swipe or scroll to adjust"), thin horizontal rule, and mute button (bottom-right corner, z-index 20).
+4. **Zone 3 (TO)** — same as Zone 1. Tapping the number copies the value to clipboard; unit pill briefly shows "✓".
+5. **Dock** — `CategoryDock.tsx`; 6 tabs, active tab has a sliding 2-px accent underline (`layoutId="category-indicator"`).
+6. **Footer** — `about the developer` → samirhusain.info.
+
+`InstallPrompt` is mounted from `page.tsx` as a sibling of `Americanizer`.
+
 ## Architectural rules
 
 1. **Single source of truth** is the Zustand store, expressed in the active category's *from* unit. The "to" number is always derived via `convert()`.
@@ -28,55 +65,56 @@ npm run typecheck
 4. **Identical from/to units are allowed** (e.g. C → C). Don't add validation against this.
 5. **Display-layer formatting is separate from state.** Culinary fractions and number rounding live in `lib/format.ts`. The store stays in exact decimals.
 
+## Temperature fixed-axis rule
+
+When `active === "temperature"`, a `useEffect` forces `fromUnit = "c"` and `toUnit = "f"`. The unit pills are rendered with `interactive={false}`. The swap button is hidden. Do not break this invariant — it also drives the ambient gradient effect correctly.
+
 ## Conversion model
 
 `lib/units.ts` defines each category with a canonical base unit and per-unit `toBase`/`fromBase` lambdas. Non-linear (°C/°F/K) and linear conversions share the same shape. Add a unit by appending to the category's `units` array.
 
-## Dial mechanics (`ScrubDial.tsx`)
+## Scrub trackpad (`ScrubDial.tsx`)
 
-- `useDrag` from `@use-gesture/react`, pointer-captured, `filterTaps: true`. Wrap with a plain `<div {...bind()} />` — `motion.div`'s native `onDrag` typing collides with use-gesture's.
-- First ~6 px of motion locks the gesture into one of two modes:
-  - **spin** — outer rim, tangential motion; detents every `2π/30` rad. Rim rotates 1:1 with the finger (no value-driven rest rotation — was tried, felt laggy on flicks).
-  - **slide** — inner cap or radial motion; detents every **12 px** of `(mx − my)` so up/right both increase. Rim rotates proportionally so it still feels alive.
+`ScrubDial` is an **invisible full-area drag surface** — not a visible knob. The original knurled-dial design was replaced with a minimalist trackpad:
+
+- `useDrag` from `@use-gesture/react`, pointer-captured, `filterTaps: true`. Wrapped in a plain `<div {...bind()} />`.
+- **Slide mode only.** Gesture computed as `mx − my`; detents every **12 px**. Up/right increase, down/left decrease.
 - `wheel` handler accumulates `-deltaY` against the same 12-px detent pitch.
 - Step is picked from velocity (px/ms): `<0.4 → 0.1`, `<1.4 → 1`, `<3.0 → 10`, else `100`.
-- Each detent: emits `onDelta`, plays a Web Audio click, runs a 1 px Framer Motion `y` jolt.
-- The dial doesn't know about from/to. `Americanizer.onScrub` routes `onDelta` to `setValue("from"|"to", …)` based on local `zone` state.
+- Each detent: emits `onDelta`, plays a Web Audio click via `clickHaptic()`.
+- The trackpad doesn't know about from/to. `Americanizer.onScrub` routes `onDelta` to `setValue("from"|"to", …)` based on local `zone` state.
+
+The **mute button** is `position: absolute; right: 20; bottom: 20; z-index: 20` inside Zone 2 — above the drag capture layer (z-index 10). `onPointerDown` is `stopPropagation`'d.
 
 ## Active-zone model (`Americanizer.tsx`)
 
-Both value rows render the same `ValueRow` component. `Americanizer` holds local `zone: "from" | "to"` state; the active row gets the LCD ring (`.lcd[data-active="true"]`), the blinking caret in `NumberDisplay`, and receives all dial deltas. Zone is **not** persisted — it's a UI affordance. Tap a row to activate it; tapping the number itself or the unit pill is `stopPropagation`'d so it triggers the keypad / drawer instead of the activate handler.
+Both value rows render the same `ValueRow` component. `Americanizer` holds local `zone: "from" | "to"` state; the active row gets full opacity + accent underline, and receives all trackpad deltas. Inactive row is at 30% opacity. Zone is **not** persisted. Tapping the row body activates it; tapping the number itself or the unit pill is `stopPropagation`'d so it triggers the keypad / drawer instead.
+
+The TO row has `copyOnFocus` — on number focus, the raw value (rounded to 3dp) is written to the clipboard and the unit pill shows "✓" for 900 ms.
 
 ## Context-aware motion pipeline (`Americanizer.tsx`)
 
-The `fromVal` feeds a Framer Motion spring (`useSpring`) → per-category `useTransform` chains → CSS custom properties published on `<main>`. No React state updates; the whole pipeline is a motion value graph.
+The `fromVal` feeds a Framer Motion spring (`useSpring`, stiffness 180, damping 26, mass 0.6) → per-category `useTransform` chains → ambient visual effects. No React state updates; the whole pipeline is a motion value graph.
 
-| Custom property | Driven by | Effect |
-|---|---|---|
-| `--lcd-bg` | temp/weight/volume/length | LCD plate background (color shift, liquid fill, ruler ticks) |
-| `--lcd-inner-shadow` | temp, weight | inset shadow sharpens with heat / mass |
-| `--shadow-hard` | weight kg | hard-shadow offset: 2 px at 0 kg, 12 px at 150 kg |
-| `--dyn-caret-w` | length meters | caret width 1–8 px on log scale |
-| `--rule-size` | length meters | ruler grid spacing 10–100 px |
-| `--rule-opacity` | length category | 0 unless in Length mode |
-| `--pool-shadow` | volume liters | amber inset pool shadow builds to 5 L |
-| `--dial-lift-x/y` | weight kg | dial plinth offset mirrors shadow offset |
-
-CSS consumers live in `.lcd`, `.canvas-grid::before`, `.chassis-pool`, and the `.chip` classes — they reference the custom properties so they react automatically without prop-drilling.
+| Category    | Effect                                                                           |
+| ----------- | -------------------------------------------------------------------------------- |
+| Temperature | Radial ambient gradient on absolute overlay div (z-0): icy-blue at −10°C → transparent at 20°C → warm-orange at 45°C |
+| Weight      | `--num-font-weight` on `<main>` drives Inter variable weight: 100 (0 kg) → 900 (150 kg) |
+| Volume      | Accent-tinted overlay div (z-0) rises from bottom: 0% at 0 L → 45% at 5 L (0.06 opacity) |
 
 ## Haptics
 
 `lib/haptics.ts` exports `clickHaptic(intensity?)` and `toggleMute()`. Implementation is a Web Audio square-wave click; designed to be swapped 1:1 with a Capacitor haptic plugin in native shells. Don't inline `AudioContext` calls in components — go through this shim.
 
-The **mute button** is a recessed center circle in `ScrubDial.tsx` (z-index 30, above the drag capture layer at z-20). It calls `toggleMute()` on click; `onPointerDown` is `stopPropagation`'d so pointer-capture on the drag layer can't steal the tap.
-
 ## Files to know
 
-- `src/components/Americanizer.tsx` — top-level composition + `ValueRow` + active-zone routing.
-- `src/components/ScrubDial.tsx` — the engine; velocity tiers live here.
+- `src/components/Americanizer.tsx` — top-level composition + `ValueRow` + active-zone routing + motion pipeline.
+- `src/components/ScrubDial.tsx` — invisible trackpad; velocity tiers + mute button live here.
+- `src/components/CategoryDock.tsx` — 6-tab dock with animated underline; `LABELS` map drives display names.
 - `src/store/converter.ts` — store, persist config, `selectActive`, `selectCategoryState`.
-- `src/lib/units.ts` — categories & convert().
+- `src/lib/units.ts` — categories & `convert()`.
 - `src/lib/format.ts` — culinary fractions, number formatting.
+- `src/lib/math.ts` — `clamp`, `lerp`, `lerpColor`.
 - `src/components/InstallPrompt.tsx` — first-visit A2HS modal (iOS + Android steps, platform-detected highlight); dismissal persisted under `americanizer:install-seen`.
 - `public/manifest.webmanifest` + `public/icon.svg` + `src/app/icon.svg` — PWA manifest and app/favicon mark.
 - `_design_reference/` — original Claude Design HTML/JSX prototype. Read for visual intent; not built.
@@ -90,4 +128,7 @@ The **mute button** is a recessed center circle in `ScrubDial.tsx` (z-index 30, 
 
 ## Open work
 
-See the README's roadmap. The next obvious slice is the R3F shader background (per-category behavior is spelled out in the master prompt).
+- R3F shader background — `@react-three/fiber` installed but not wired (per-category behavior in README).
+- Per-category accent colors (orange/lime/cyan/yellow) not yet wired into live CSS.
+- PWA Workbox cache-first service worker.
+- Capacitor wrapper for native haptics + App Store / Play Store.

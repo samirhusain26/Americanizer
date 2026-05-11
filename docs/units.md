@@ -12,6 +12,8 @@ All unit definitions live in [`src/lib/units.ts`](../src/lib/units.ts). Each cat
 | `f` | °F    | us     | `(v − 32) × 5/9`       |
 | `k` | K     | metric | `v − 273.15`           |
 
+> Temperature is a **fixed-axis** category: units are locked to °C (from) and °F (to). The unit pill is display-only and the swap button is hidden. Kelvin is defined but not surfaced in the UI.
+
 ### Weight (base: `kg`)
 
 | id   | label | system |
@@ -51,6 +53,31 @@ All unit definitions live in [`src/lib/units.ts`](../src/lib/units.ts). Each cat
 
 `tsp`, `tbsp`, `cup`, `floz` render as **culinary fractions** at display time. The store still holds exact decimals.
 
+### Speed (base: `m/s`)
+
+| id      | label | system |
+| ------- | ----- | ------ |
+| `ms`    | m/s   | metric |
+| `kmh`   | km/h  | metric |
+| `mph`   | mph   | us     |
+| `knots` | kn    | us     |
+
+Default: 100 km/h → mph.
+
+### Area (base: `m²`)
+
+| id    | label | system |
+| ----- | ----- | ------ |
+| `cm2` | cm²   | metric |
+| `m2`  | m²    | metric |
+| `ha`  | ha    | metric |
+| `km2` | km²   | metric |
+| `in2` | in²   | us     |
+| `ft2` | ft²   | us     |
+| `ac`  | ac    | us     |
+
+Default: 100 m² → ft².
+
 ## API
 
 ```ts
@@ -59,6 +86,8 @@ import { convert, getUnit, CATEGORIES, type CategoryId } from "@/lib/units";
 convert("temperature", 22, "c", "f");   // 71.6
 convert("weight", 70, "kg", "lb");       // 154.323…
 convert("length", 1, "m", "in");         // 39.3700…
+convert("speed", 100, "kmh", "mph");     // 62.137…
+convert("area", 100, "m2", "ft2");       // 1076.39…
 getUnit("volume", "cup");                // UnitDef
 ```
 
@@ -84,7 +113,21 @@ The `UnitDrawer` and store automatically pick up new units. If you remove a unit
 1. Define a `CategoryDef` (base unit, units, `defaultFrom`, `defaultTo`, `defaultValueFrom`).
 2. Register it in `CATEGORIES` and `CATEGORY_ORDER`.
 3. Seed `HUMAN_BASELINE` in [`src/store/converter.ts`](../src/store/converter.ts).
-4. If `CATEGORY_ORDER.length > 4`, widen the `grid-cols-4` in `CategoryDock.tsx`.
+4. Add a label entry to `LABELS` in `CategoryDock.tsx`.
+5. If the category needs a fixed unit axis (like temperature), add the lock in `Americanizer.tsx`'s `useEffect` and set `interactive={false}` on the pill + hide the swap button.
+
+## Human-baseline defaults
+
+On first hydrate (no `localStorage`), the store seeds:
+
+| Category    | From         | To     | Default value |
+| ----------- | ------------ | ------ | ------------- |
+| Temperature | °C           | °F     | 22            |
+| Weight      | kg           | lb     | 70            |
+| Length      | m            | in     | 1             |
+| Volume      | L            | fl oz  | 1             |
+| Speed       | km/h         | mph    | 100           |
+| Area        | m²           | ft²    | 100           |
 
 ## Persistence
 

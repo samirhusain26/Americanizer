@@ -12,6 +12,10 @@ export function toggleMute(): void {
   if (!muted) clickHaptic(1);
 }
 
+export function getMuted(): boolean {
+  return muted;
+}
+
 function getCtx(): AudioContext | null {
   if (typeof window === "undefined") return null;
   if (!ctx) {
@@ -26,6 +30,7 @@ function getCtx(): AudioContext | null {
 export function clickHaptic(intensity: number = 1): void {
   const c = getCtx();
   if (!c || muted) return;
+  if (c.state === "suspended") c.resume();
   const t = c.currentTime;
   const osc = c.createOscillator();
   const gain = c.createGain();

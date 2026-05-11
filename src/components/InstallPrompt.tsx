@@ -5,7 +5,10 @@ import { AnimatePresence, motion } from "framer-motion";
 
 type Platform = "ios" | "android" | "desktop";
 
-const STORAGE_KEY = "americanizer:install-seen";
+const DISMISSED_KEY = "americanizer:install-dismissed";
+const VISIT_COUNT_KEY = "americanizer:install-vc";
+// Legacy key — treat existing dismissals as permanent
+const LEGACY_KEY = "americanizer:install-seen";
 
 function detectPlatform(): Platform {
   if (typeof navigator === "undefined") return "desktop";
@@ -29,7 +32,12 @@ export default function InstallPrompt() {
   useEffect(() => {
     if (isStandalone()) return;
     try {
-      if (localStorage.getItem(STORAGE_KEY)) return;
+      // Permanently dismissed (new key or legacy key)
+      if (localStorage.getItem(DISMISSED_KEY) || localStorage.getItem(LEGACY_KEY)) return;
+      // Increment visit counter
+      const count = parseInt(localStorage.getItem(VISIT_COUNT_KEY) ?? "0", 10) + 1;
+      localStorage.setItem(VISIT_COUNT_KEY, String(count));
+      if (count !== 1 && count !== 3) return;
     } catch {
       return;
     }
@@ -38,12 +46,14 @@ export default function InstallPrompt() {
     return () => window.clearTimeout(id);
   }, []);
 
+  // Permanent dismiss — clicking "Got it"
   const dismiss = () => {
-    try {
-      localStorage.setItem(STORAGE_KEY, "1");
-    } catch {}
+    try { localStorage.setItem(DISMISSED_KEY, "1"); } catch {}
     setOpen(false);
   };
+
+  // Soft close — backdrop tap; prompt may still return on visit 3
+  const softClose = () => setOpen(false);
 
   return (
     <AnimatePresence>
@@ -55,7 +65,7 @@ export default function InstallPrompt() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          onClick={dismiss}
+          onClick={softClose}
           style={{ background: "rgba(20,20,15,0.55)" }}
         >
           <motion.div

@@ -1,38 +1,20 @@
-@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap");
 @import "tailwindcss";
 
 @theme {
-  /* Teenage Engineering — matte chassis */
-  --color-shell: #f4f4f0;
-  --color-shell-2: #eaeae4;
-  --color-shell-3: #dcdcd4;
-  --color-ink: #14140f;
-  --color-ink-soft: #4a4a42;
-  --color-rule: #bcbcb2;
+  --color-canvas: #FAFAFA;
+  --color-ink-active: #000000;
+  --color-ink-muted: #A3A3A3;
+  --color-accent: #0055FF;
 
-  /* Hardware accents */
-  --color-orange: #ff5a1f;
-  --color-lime: #c8f02b;
-  --color-cyan: #3ad0ff;
-  --color-yellow: #ffd400;
-  --color-red: #ef2b2b;
-  --color-purple: #c084fc;
-  --color-rose: #fb7185;
-
-  /* Fonts */
-  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
-
-  /* Hard shadows (no blur) */
-  --shadow-hard-sm: 2px 2px 0 0 var(--color-ink);
-  --shadow-hard: 4px 4px 0 0 var(--color-ink);
-  --shadow-hard-lg: 6px 6px 0 0 var(--color-ink);
+  --font-display: "Bricolage Grotesque", system-ui, sans-serif;
+  --font-mono: "Bricolage Grotesque", system-ui, sans-serif;
 }
 
 @layer base {
   html, body {
-    background: var(--color-shell);
-    color: var(--color-ink);
+    background: var(--color-canvas);
+    color: var(--color-ink-active);
     -webkit-font-smoothing: antialiased;
     overscroll-behavior: none;
     font-family: var(--font-display);
@@ -40,106 +22,17 @@
   * { -webkit-tap-highlight-color: transparent; }
 }
 
+/* Variable-font effects driven by motion pipeline CSS custom properties */
 .num-display {
   font-family: var(--font-display);
   font-feature-settings: "tnum" 1, "lnum" 1;
-  letter-spacing: -0.045em;
-  font-weight: 500;
-}
-.ui-mono {
-  font-family: var(--font-mono);
-  letter-spacing: 0.04em;
-  font-weight: 500;
-}
-
-/* LCD-like screen surface — driven by dynamic CSS custom properties
- * so Framer Motion can animate them without React re-renders. */
-:root {
-  --lcd-bg-default:
-    repeating-linear-gradient(0deg, rgba(0,0,0,0.035) 0 1px, transparent 1px 3px),
-    linear-gradient(180deg, #d8dcc6 0%, #c6caaf 100%);
-  --lcd-inner-shadow-default:
-    inset 0 2px 0 rgba(0,0,0,0.14),
-    inset 0 -2px 0 rgba(255,255,255,0.35);
-}
-.lcd {
-  background: var(--lcd-bg, var(--lcd-bg-default));
-  color: #14140f;
-  border: 1.5px solid var(--color-ink);
-  box-shadow:
-    var(--lcd-inner-shadow, var(--lcd-inner-shadow-default)),
-    var(--lcd-outer-shadow, 0 0 0 0 transparent);
-}
-.lcd[data-active="true"] {
-  box-shadow:
-    var(--lcd-inner-shadow, var(--lcd-inner-shadow-default)),
-    var(--lcd-outer-shadow, 0 0 0 0 transparent),
-    0 0 0 2px var(--accent, var(--color-orange));
-}
-
-/* Canvas grid — spacing animates with the LENGTH category. */
-.canvas-grid {
-  position: relative;
-}
-.canvas-grid::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(to right, rgba(0,0,0,0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0,0,0,0.05) 1px, transparent 1px);
-  background-size: var(--rule-size, 40px) var(--rule-size, 40px);
-  opacity: var(--rule-opacity, 0);
-  transition: opacity 0.35s ease;
-}
-
-/* Chassis "pool" shadow — driven by VOLUME fill. */
-.chassis-pool {
-  box-shadow: var(--pool-shadow, 0 0 0 0 transparent);
-}
-
-/* Punch-through screw — TE chassis detail */
-.screw {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #cfcec6 0%, #8a8a82 60%, #14140f 100%);
-  border: 1px solid var(--color-ink);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(0,0,0,0.4);
-  position: relative;
-  display: inline-block;
-}
-.screw::after {
-  content: "";
-  position: absolute; inset: 0;
-  background: linear-gradient(45deg, transparent 46%, var(--color-ink) 46% 54%, transparent 54%);
-  border-radius: 50%;
+  font-optical-sizing: auto;
+  letter-spacing: var(--num-letter-spacing, -0.03em);
+  font-variation-settings: "wght" var(--num-font-weight, 400), "opsz" 96;
+  transform: skewX(var(--num-skew, 0deg));
 }
 
 @keyframes lcd-blink {
   0%, 50% { opacity: 1; }
   50.1%, 100% { opacity: 0; }
-}
-
-/* Rule lines between physical zones */
-.rule-b { border-bottom: 1.5px solid var(--color-ink); }
-.rule-t { border-top: 1.5px solid var(--color-ink); }
-
-/* Chunky physical surfaces */
-.chassis {
-  background: var(--color-shell);
-  border: 1.5px solid var(--color-ink);
-}
-.chip {
-  background: var(--color-shell-2);
-  border: 1.5px solid var(--color-ink);
-  box-shadow: var(--shadow-hard-sm);
-}
-.chip-press:active { box-shadow: 0 0 0 0 var(--color-ink); transform: translate(2px, 2px); }
-
-/* Knurled ring texture — TE-style alternating teeth */
-.knurl {
-  background-image: repeating-conic-gradient(from 0deg,
-    #1a1a14 0deg 3deg,
-    #6a6a60 3deg 4deg,
-    #2a2a22 4deg 6deg);
 }

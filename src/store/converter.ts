@@ -28,6 +28,9 @@ interface ConverterState {
 
   /** Swap from/to units (and hence the displayed sides). */
   swap: () => void;
+
+  /** Reset the active category to its human-baseline defaults. */
+  resetCategory: () => void;
 }
 
 const HUMAN_BASELINE: Record<CategoryId, CategoryState> = {
@@ -93,6 +96,11 @@ export const useConverter = create<ConverterState>()(
             },
           },
         });
+      },
+
+      resetCategory: () => {
+        const { active, perCategory } = get();
+        set({ perCategory: { ...perCategory, [active]: HUMAN_BASELINE[active] } });
       },
     }),
     {

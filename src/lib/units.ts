@@ -155,3 +155,74 @@ export function convert(category: CategoryId, value: number, fromId: string, toI
   const to = getUnit(category, toId);
   return to.fromBase(from.toBase(value));
 }
+
+/** Returns the visual ceiling in the category's base unit for motion pipeline normalization. */
+export function getVisualMax(category: CategoryId, unitId: string): number {
+  switch (category) {
+    case "weight":
+      return (unitId === "g" || unitId === "oz") ? 1 : 150;
+    case "volume":
+      return (["ml", "floz", "cup", "tsp", "tbsp"] as string[]).includes(unitId) ? 1 : 100;
+    case "length":
+      if (unitId === "km" || unitId === "mi") return 200_000;
+      if (unitId === "cm" || unitId === "in" || unitId === "mm") return 1;
+      return 3;
+    case "speed":
+      if (unitId === "ms") return 50;
+      if (unitId === "knots") return 51.444;
+      return 44.444; // 160 km/h in m/s
+    case "area":
+      if (unitId === "cm2" || unitId === "in2") return 0.1;
+      if (unitId === "km2" || unitId === "ha" || unitId === "ac") return 10_000_000;
+      return 100;
+    case "temperature":
+      return 40; // ~40°C covers the interesting gradient window for step calibration
+    default:
+      return 1;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Unit-adaptive scrub step configuration
+// ---------------------------------------------------------------------------
+
+export interface StepConfig {
+  slow: number;
+  medium: number;
+  fast: number;
+  turbo: number;
+}
+
+function snapToNice(v: number): number {
+  if (v <= 0) return 0.01;
+  const exp = Math.floor(Math.log10(v));
+  const pow = Math.pow(10, exp);
+  const frac = v / pow; // always in [1, 10)
+  let nice: number;
+  if (frac < 1.75) nice = 1;
+  else if (frac < 3.75) nice = 2.5;
+  else if (frac < 7.5) nice = 5;
+  else nice = 10;
+  return nice * pow;
+}
+
+/**
+ * Returns velocity-tier step sizes calibrated so that ~32 slow detents traverse
+ * the full visual range of the given unit. Each tier is 5× the previous.
+ */
+export function getStepConfig(category: CategoryId, unitId: string): StepConfig {
+  const maxBase = getVisualMax(category, unitId);
+  const unitDef = CATEGORIES[category].units.find((u) => u.id === unitId);
+  // Use delta-from-zero to handle affine units (°F, K) correctly
+  const maxInUnit = unitDef
+    ? Math.abs(unitDef.fromBase(maxBase) - unitDef.fromBase(0))
+    : maxBase;
+
+  const base = snapToNice(maxInUnit / 32);
+  return {
+    slow:   base,
+    medium: snapToNice(base * 5),
+    fast:   snapToNice(base * 20),
+    turbo:  snapToNice(base * 100),
+  };
+}

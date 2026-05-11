@@ -43,6 +43,14 @@ const HUMAN_BASELINE: Record<CategoryId, CategoryState> = {
   area:        { fromUnit: "m2",  toUnit: "ft2",  value: 100 },
 };
 
+function clampToMin(active: CategoryId, fromUnitId: string, value: number): number {
+  const cat = CATEGORIES[active];
+  if (cat.minInBase === undefined) return value;
+  const fromUnit = cat.units.find((u) => u.id === fromUnitId);
+  if (!fromUnit) return value;
+  return Math.max(fromUnit.fromBase(cat.minInBase), value);
+}
+
 export const useConverter = create<ConverterState>()(
   persist(
     (set, get) => ({
@@ -54,10 +62,11 @@ export const useConverter = create<ConverterState>()(
       setValue: (side, next) => {
         const { active, perCategory } = get();
         const cur = perCategory[active];
-        const valueFrom =
+        const raw =
           side === "from"
             ? next
             : convert(active, next, cur.toUnit, cur.fromUnit);
+        const valueFrom = clampToMin(active, cur.fromUnit, raw);
         set({
           perCategory: { ...perCategory, [active]: { ...cur, value: valueFrom } },
         });
@@ -67,13 +76,13 @@ export const useConverter = create<ConverterState>()(
         const { active, perCategory } = get();
         const cur = perCategory[active];
         if (side === "from") {
-          // Preserve the displayed FROM number; recompute nothing — value stays in NEW from-unit.
-          // (Visually the FROM number stays the same, the TO number recomputes.)
-          set({ perCategory: { ...perCategory, [active]: { ...cur, fromUnit: unitId } } });
+          // Preserve the displayed FROM number; value stays in NEW from-unit — but clamp it.
+          const value = clampToMin(active, unitId, cur.value);
+          set({ perCategory: { ...perCategory, [active]: { ...cur, fromUnit: unitId, value } } });
         } else {
           // Preserve the displayed TO number, so the FROM value must be recomputed.
           const displayedTo = convert(active, cur.value, cur.fromUnit, cur.toUnit);
-          const newFromValue = convert(active, displayedTo, unitId, cur.fromUnit);
+          const newFromValue = clampToMin(active, cur.fromUnit, convert(active, displayedTo, unitId, cur.fromUnit));
           set({
             perCategory: {
               ...perCategory,
@@ -86,7 +95,11 @@ export const useConverter = create<ConverterState>()(
       swap: () => {
         const { active, perCategory } = get();
         const cur = perCategory[active];
-        const newValueInFrom = convert(active, cur.value, cur.fromUnit, cur.toUnit);
+        const newValueInFrom = clampToMin(
+          active,
+          cur.toUnit,
+          convert(active, cur.value, cur.fromUnit, cur.toUnit)
+        );
         set({
           perCategory: {
             ...perCategory,

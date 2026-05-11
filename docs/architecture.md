@@ -59,7 +59,8 @@ Everything else comes from the Zustand store. The active zone deliberately does 
                    │              │
                    ▼              ▼
                   Zustand action — value is normalized
-                  back to the FROM unit before commit.
+                  back to the FROM unit, then clamped to
+                  the category's minInBase floor, before commit.
 ```
 
 `setValue("to", n)` converts `n` from the to-unit back into the from-unit before writing, so the store invariant — *value is always in `fromUnit`* — holds.
@@ -166,7 +167,7 @@ That's it — drawer, conversions, and persistence pick it up automatically. If 
 
 ## Adding a category
 
-1. Define a `CategoryDef` in `lib/units.ts` (canonical base unit, units array, defaults).
+1. Define a `CategoryDef` in `lib/units.ts` (canonical base unit, units array, defaults). Set `minInBase` to the physical lower bound (e.g. `0` for non-negative quantities; omit if unbounded).
 2. Add it to `CATEGORIES` and `CATEGORY_ORDER`.
 3. Seed `HUMAN_BASELINE` in `store/converter.ts`.
 4. Add a `LABELS` entry in `CategoryDock.tsx`.

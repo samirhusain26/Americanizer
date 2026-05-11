@@ -31,18 +31,19 @@ npm run typecheck
 
 Per-category accent colors (orange/lime/cyan/yellow) are documented in `_design_reference/` and the README roadmap but not yet wired into the live CSS.
 
-## Categories (6 total)
+## Categories (7 total)
 
 Defined in `src/lib/units.ts` — `CATEGORY_ORDER` drives the dock order:
 
-| id          | Dock label | Default                | Notes                       |
-| ----------- | ---------- | ---------------------- | --------------------------- |
-| temperature | Temp       | 22 °C → 71.6 °F        | Fixed axis; no picker/swap  |
-| weight      | Mass       | 70 kg → 154.3 lb       | Font-weight motion effect   |
-| length      | Dist       | 1 m → 39.37 in         |                             |
-| volume      | Vol        | 1 L → 33.81 fl oz      | Culinary fractions; fill effect |
-| speed       | Speed      | 100 km/h → 62.1 mph    |                             |
-| area        | Area       | 100 m² → 1076.4 ft²    |                             |
+| id          | Dock label | Default                | Notes                            |
+| ----------- | ---------- | ---------------------- | -------------------------------- |
+| temperature | Temp       | 22 °C → 71.6 °F        | Fixed axis; no picker/swap; minInBase −273.15 |
+| weight      | Mass       | 70 kg → 154.3 lb       | Font-weight motion effect; minInBase 0 |
+| length      | Dist       | 1 m → 39.37 in         | minInBase 0                      |
+| volume      | Vol        | 1 L → 33.81 fl oz      | Culinary fractions; fill effect; minInBase 0 |
+| speed       | Speed      | 100 km/h → 62.1 mph    | minInBase 0                      |
+| area        | Area       | 100 m² → 1076.4 ft²    | minInBase 0                      |
+| currency    | Currency   | 1 USD → INR            | Live rates via `lib/fx.ts`; minInBase 0 |
 
 ## UI layout
 
@@ -52,7 +53,7 @@ Five vertical sections in `Americanizer.tsx`:
 2. **Zone 1 (FROM)** — unit long-name above massive number; unit pill right. Active = full opacity + thin accent underline. Inactive = 30% opacity.
 3. **Zone 2 (Trackpad)** — full-area invisible drag surface. Contains gesture hint ("Swipe or scroll to adjust"), thin horizontal rule, and mute button (bottom-right corner, z-index 20).
 4. **Zone 3 (TO)** — same as Zone 1. Tapping the number copies the value to clipboard; unit pill briefly shows "✓".
-5. **Dock** — `CategoryDock.tsx`; 6 tabs, active tab has a sliding 2-px accent underline (`layoutId="category-indicator"`).
+5. **Dock** — `CategoryDock.tsx`; 7 tabs, active tab has a sliding 2-px accent underline (`layoutId="category-indicator"`).
 6. **Footer** — `about the developer` → samirhusain.info.
 
 `InstallPrompt` is mounted from `page.tsx` as a sibling of `Americanizer`.
@@ -72,6 +73,8 @@ When `active === "temperature"`, a `useEffect` forces `fromUnit = "c"` and `toUn
 ## Conversion model
 
 `lib/units.ts` defines each category with a canonical base unit and per-unit `toBase`/`fromBase` lambdas. Non-linear (°C/°F/K) and linear conversions share the same shape. Add a unit by appending to the category's `units` array.
+
+`CategoryDef.minInBase` (optional) sets a physical lower bound in the base unit. The store's `clampToMin()` helper enforces this floor in `setValue`, `setUnit`, and `swap` — preventing e.g. negative weights or sub-absolute-zero temperatures. Set `minInBase: 0` for physical quantities, `minInBase: -273.15` for temperature (°C base), and omit it for unbounded categories.
 
 ## Scrub trackpad (`ScrubDial.tsx`)
 

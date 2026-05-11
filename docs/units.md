@@ -1,6 +1,6 @@
 # Units & conversion
 
-All unit definitions live in [`src/lib/units.ts`](../src/lib/units.ts). Each category has a canonical base unit; per-unit `toBase`/`fromBase` lambdas convert in and out of it.
+All unit definitions live in [`src/lib/units.ts`](../src/lib/units.ts). Each category has a canonical base unit; per-unit `toBase`/`fromBase` lambdas convert in and out of it. An optional `minInBase` field on the category sets a physical lower bound (e.g. 0 for weight, −273.15 °C for temperature); the store clamps all values to this floor before committing.
 
 ## Categories
 
@@ -78,6 +78,23 @@ Default: 100 km/h → mph.
 
 Default: 100 m² → ft².
 
+### Currency (base: `USD`)
+
+Live exchange rates fetched via `lib/fx.ts`. Rates are cached with a cooldown to limit API calls.
+
+| id    | label | system   |
+| ----- | ----- | -------- |
+| `usd` | USD   | currency |
+| `inr` | INR   | currency |
+| `eur` | EUR   | currency |
+| `gbp` | GBP   | currency |
+| `cad` | CAD   | currency |
+| `aud` | AUD   | currency |
+| `jpy` | JPY   | currency |
+| `mxn` | MXN   | currency |
+
+Default: 1 USD → INR. Rates refresh automatically; `minInBase: 0` prevents negative currency values.
+
 ## API
 
 ```ts
@@ -110,7 +127,7 @@ The `UnitDrawer` and store automatically pick up new units. If you remove a unit
 
 ## Adding a category
 
-1. Define a `CategoryDef` (base unit, units, `defaultFrom`, `defaultTo`, `defaultValueFrom`).
+1. Define a `CategoryDef` (base unit, units, `defaultFrom`, `defaultTo`, `defaultValueFrom`). Set `minInBase` to the physical lower bound (0 for most physical quantities; omit if unbounded).
 2. Register it in `CATEGORIES` and `CATEGORY_ORDER`.
 3. Seed `HUMAN_BASELINE` in [`src/store/converter.ts`](../src/store/converter.ts).
 4. Add a label entry to `LABELS` in `CategoryDock.tsx`.
@@ -128,6 +145,7 @@ On first hydrate (no `localStorage`), the store seeds:
 | Volume      | L            | fl oz  | 1             |
 | Speed       | km/h         | mph    | 100           |
 | Area        | m²           | ft²    | 100           |
+| Currency    | USD          | INR    | 1             |
 
 ## Persistence
 

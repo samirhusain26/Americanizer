@@ -23,6 +23,8 @@ export interface CategoryDef {
   defaultTo: string;
   /** The default value displayed in the FROM unit at first hydrate. */
   defaultValueFrom: number;
+  /** Physical lower bound expressed in the category's base unit. Undefined = no floor. */
+  minInBase?: number;
 }
 
 import { getRate } from "./fx";
@@ -39,6 +41,7 @@ export const TEMPERATURE: CategoryDef = {
   defaultFrom: "c",
   defaultTo: "f",
   defaultValueFrom: 22,
+  minInBase: -273.15,
   units: [
     { id: "c", label: "°C", longLabel: "Celsius", system: "metric", toBase: (v) => v, fromBase: (v) => v },
     { id: "f", label: "°F", longLabel: "Fahrenheit", system: "us", toBase: (v) => (v - 32) * (5 / 9), fromBase: (v) => v * (9 / 5) + 32 },
@@ -53,6 +56,7 @@ export const WEIGHT: CategoryDef = {
   defaultFrom: "kg",
   defaultTo: "lb",
   defaultValueFrom: 70,
+  minInBase: 0,
   units: [
     { id: "kg", label: "kg", longLabel: "Kilogram", system: "metric", ...linear(1) },
     { id: "g",  label: "g",  longLabel: "Gram",     system: "metric", ...linear(0.001) },
@@ -69,6 +73,7 @@ export const LENGTH: CategoryDef = {
   defaultFrom: "m",
   defaultTo: "in",
   defaultValueFrom: 1,
+  minInBase: 0,
   units: [
     { id: "mm", label: "mm", longLabel: "Millimeter", system: "metric", ...linear(0.001) },
     { id: "cm", label: "cm", longLabel: "Centimeter", system: "metric", ...linear(0.01) },
@@ -88,6 +93,7 @@ export const VOLUME: CategoryDef = {
   defaultFrom: "l",
   defaultTo: "floz",
   defaultValueFrom: 1,
+  minInBase: 0,
   units: [
     { id: "ml",   label: "mL",    longLabel: "Milliliter",   system: "metric", ...linear(0.001) },
     { id: "l",    label: "L",     longLabel: "Liter",        system: "metric", ...linear(1) },
@@ -108,6 +114,7 @@ export const SPEED: CategoryDef = {
   defaultFrom: "kmh",
   defaultTo: "mph",
   defaultValueFrom: 100,
+  minInBase: 0,
   units: [
     { id: "ms",    label: "m/s",  longLabel: "Meters/second",    system: "metric", ...linear(1) },
     { id: "kmh",   label: "km/h", longLabel: "Kilometers/hour",  system: "metric", ...linear(1 / 3.6) },
@@ -123,6 +130,7 @@ export const AREA: CategoryDef = {
   defaultFrom: "m2",
   defaultTo: "ft2",
   defaultValueFrom: 100,
+  minInBase: 0,
   units: [
     { id: "cm2", label: "cm²", longLabel: "Sq. Centimeter", system: "metric", ...linear(0.0001) },
     { id: "m2",  label: "m²",  longLabel: "Sq. Meter",      system: "metric", ...linear(1) },
@@ -146,6 +154,7 @@ export const CURRENCY: CategoryDef = {
   defaultFrom: "usd",
   defaultTo: "inr",
   defaultValueFrom: 100,
+  minInBase: 0,
   units: [
     { id: "usd", label: "USD", longLabel: "US Dollar",         system: "currency", toBase: (v) => v, fromBase: (v) => v },
     { id: "inr", label: "INR", longLabel: "Indian Rupee",      system: "currency", ...fxUnit("INR") },

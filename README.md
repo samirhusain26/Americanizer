@@ -71,7 +71,7 @@ Five vertical zones inside the viewport:
 2. **Zone 1 — From `ValueRow`.** Muted unit name above a massive editable number; unit pill to the right. Active zone is full opacity, inactive at 30%. Thin accent rule at the bottom when active.
 3. **Zone 2 — Trackpad.** Full-area invisible drag surface with a gesture hint ("Swipe or scroll to adjust") and a thin horizontal rule. Also hosts the mute button (bottom-right corner).
 4. **Zone 3 — To `ValueRow`.** Same component as Zone 1. Tapping the number copies the value to the clipboard (unit pill briefly shows "✓").
-5. **Dock.** Segmented control for Temp / Mass / Dist / Vol / Speed / Area. Active category shown with a sliding 2-px accent underline.
+5. **Dock.** Segmented control for Temp / Mass / Dist / Vol / Speed / Area / Currency. Active category shown with a sliding 2-px accent underline.
 6. **Footer.** Small "about the developer" link → [samirhusain.info](https://samirhusain.info).
 
 An `InstallPrompt` modal surfaces on the first visit. It platform-detects iOS vs Android and highlights the matching A2HS instructions; dismissal is remembered in `localStorage` under `americanizer:install-seen` and the modal skips itself when the app is already running as an installed PWA.
@@ -80,14 +80,15 @@ An `InstallPrompt` modal surfaces on the first visit. It platform-detects iOS vs
 
 Six categories, each with independent per-category state (units + value persist across category switches):
 
-| Category    | Dock label | Default             | Notes                         |
-| ----------- | ---------- | ------------------- | ----------------------------- |
-| Temperature | Temp       | 22 °C → 71.6 °F    | Fixed axis; no picker/swap    |
-| Weight      | Mass       | 70 kg → 154.3 lb   | Font-weight effect            |
-| Length      | Dist       | 1 m → 39.37 in     |                               |
-| Volume      | Vol        | 1 L → 33.81 fl oz  | Culinary fractions; fill effect |
-| Speed       | Speed      | 100 km/h → 62.1 mph|                               |
-| Area        | Area       | 100 m² → 1076.4 ft²|                               |
+| Category    | Dock label | Default             | Notes                                    |
+| ----------- | ---------- | ------------------- | ---------------------------------------- |
+| Temperature | Temp       | 22 °C → 71.6 °F    | Fixed axis; no picker/swap; floor −273.15 °C |
+| Weight      | Mass       | 70 kg → 154.3 lb   | Font-weight effect; floor 0              |
+| Length      | Dist       | 1 m → 39.37 in     | Floor 0                                  |
+| Volume      | Vol        | 1 L → 33.81 fl oz  | Culinary fractions; fill effect; floor 0 |
+| Speed       | Speed      | 100 km/h → 62.1 mph| Floor 0                                  |
+| Area        | Area       | 100 m² → 1076.4 ft²| Floor 0                                  |
+| Currency    | Currency   | 1 USD → INR        | Live exchange rates; floor 0             |
 
 See [`docs/units.md`](docs/units.md) for the full unit list per category.
 
@@ -104,7 +105,7 @@ Zustand keeps **independent per-category state**, so switching categories preser
 }
 ```
 
-The store is the single source of truth. The displayed "to" number is derived: `convert(category, value, fromUnit, toUnit)`. Identical from/to selections are allowed.
+The store is the single source of truth. The displayed "to" number is derived: `convert(category, value, fromUnit, toUnit)`. Identical from/to selections are allowed. All `setValue`, `setUnit`, and `swap` actions clamp the resulting from-value to the category's `minInBase` physical floor (e.g. 0 for weight/length/volume, −273.15 °C for temperature).
 
 The store is persisted under the key `americanizer:v1` with `partialize` to keep storage minimal.
 

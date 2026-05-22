@@ -13,6 +13,7 @@ interface ScrubDialProps {
   onReset?: () => void;
   stepConfig?: StepConfig;
   size?: number; // unused — kept for API compat
+  showHint?: boolean;
 }
 
 function stepFromVelocity(vAbs: number, cfg: StepConfig): number {
@@ -26,7 +27,7 @@ function stepFromVelocity(vAbs: number, cfg: StepConfig): number {
  * Invisible horizontal trackpad. The entire zone is draggable;
  * all physics (detents, velocity tiers, haptics) are preserved.
  */
-export default function ScrubDial({ value: _value, onDelta, onReset, stepConfig = DEFAULT_STEPS, size: _size = 200 }: ScrubDialProps) {
+export default function ScrubDial({ value: _value, onDelta, onReset, stepConfig = DEFAULT_STEPS, size: _size = 200, showHint = true }: ScrubDialProps) {
   const PX_PER_DETENT = 12;
 
   const lastDetentBucket = useRef(0);
@@ -86,30 +87,34 @@ export default function ScrubDial({ value: _value, onDelta, onReset, stepConfig 
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center select-none">
       {/* Ultra-thin rule */}
-      <div
-        style={{
-          width: "68%",
-          height: 1,
-          background: "var(--color-ink-muted)",
-          opacity: 0.22,
-        }}
-      />
+      {showHint && (
+        <div
+          style={{
+            width: "68%",
+            height: 1,
+            background: "var(--color-ink-muted)",
+            opacity: 0.22,
+          }}
+        />
+      )}
 
       {/* Gesture hint */}
-      <p
-        style={{
-          marginTop: 16,
-          fontSize: 9,
-          letterSpacing: "0.24em",
-          textTransform: "uppercase",
-          color: "var(--color-ink-muted)",
-          opacity: 0.55,
-          fontWeight: 500,
-          userSelect: "none",
-        }}
-      >
-        Swipe or scroll to adjust
-      </p>
+      {showHint && (
+        <p
+          style={{
+            marginTop: 16,
+            fontSize: 9,
+            letterSpacing: "0.24em",
+            textTransform: "uppercase",
+            color: "var(--color-ink-muted)",
+            opacity: 0.55,
+            fontWeight: 500,
+            userSelect: "none",
+          }}
+        >
+          Swipe or scroll to adjust
+        </p>
+      )}
 
       {/* Full-area capture layer — sits above content, below mute button */}
       <div

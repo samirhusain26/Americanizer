@@ -13,6 +13,8 @@ import UnitDrawer from "./UnitDrawer";
 import ScrubDial from "./ScrubDial";
 import SwapButton from "./SwapButton";
 import CategoryDock from "./CategoryDock";
+import { ShaderBackground } from "./ShaderBackground";
+import WeatherCharacter from "./WeatherCharacter";
 
 type ActiveZone = "from" | "to";
 
@@ -72,6 +74,27 @@ export default function Americanizer() {
 
   const fromUnitDef = current.def.units.find((u) => u.id === current.fromUnit)!;
   const toUnitDef   = current.def.units.find((u) => u.id === current.toUnit)!;
+
+  const normalizedValueForShader = useMemo(() => {
+    if (!fromUnitDef) return 0;
+    const baseVal = fromUnitDef.toBase(current.fromVal);
+    switch (current.category) {
+      case "temperature":
+        return clamp((baseVal + 10) / 60, 0, 1);
+      case "weight":
+        return clamp(baseVal / 150, 0, 1);
+      case "length":
+        return clamp(baseVal / 1000, 0, 1);
+      case "volume":
+        return clamp(baseVal / 10, 0, 1);
+      case "speed":
+        return clamp(baseVal / 50, 0, 1);
+      case "area":
+        return clamp(baseVal / 1000000, 0, 1);
+      default:
+        return 0;
+    }
+  }, [current.category, current.fromVal, fromUnitDef]);
 
   const onScrub = (delta: number) => {
     if (zone === "from") setValue("from", current.fromVal + delta);
@@ -206,6 +229,11 @@ export default function Americanizer() {
           ["--num-skew" as string]:            speedSkew,
         }}
       >
+        {/* WebGL Shader background (all except currency) */}
+        {current.category !== "currency" && (
+          <ShaderBackground category={current.category} value={normalizedValueForShader} />
+        )}
+
         {/* Temperature ambient gradient */}
         {current.category === "temperature" && (
           <motion.div
@@ -275,11 +303,18 @@ export default function Americanizer() {
             />
           )}
 
+          {current.category === "temperature" && (
+            <div className="absolute pointer-events-none" style={{ zIndex: 5 }}>
+              <WeatherCharacter />
+            </div>
+          )}
+
           <ScrubDial
             value={zone === "from" ? current.fromVal : current.toVal}
             onDelta={onScrub}
             onReset={resetCategory}
             stepConfig={stepConfig}
+            showHint={current.category !== "temperature"}
           />
           {current.category !== "temperature" && (
             <div className="absolute" style={{ top: 12, right: 16 }}>
@@ -446,6 +481,8 @@ function ValueRow({
             rawValue={rawValue}
             onCommit={onCommit}
             onFocus={copyOnFocus ? handleCopy : undefined}
+            showCaret={active}
+            caretColor="var(--color-accent)"
           />
         </div>
         <div onClick={(e) => e.stopPropagation()}>

@@ -7,12 +7,12 @@ import type { CategoryId } from "@/lib/units";
 
 const CATEGORY_INDEX: Record<CategoryId, number> = {
   temperature: 0,
-  currency:    1,
-  weight:      2,
-  length:      3,
-  volume:      4,
-  speed:       5,
-  area:        6,
+  currency:    -1,
+  weight:      1,
+  length:      2,
+  volume:      3,
+  speed:       4,
+  area:        5,
 };
 
 const vertexShader = /* glsl */ `
@@ -69,9 +69,9 @@ const fragmentShader = /* glsl */ `
       // Angular: threshold the noise for crystalline facets
       float crystal = step(0.52, n) * step(n, 0.62) + step(0.35, n) * step(n, 0.38);
       vec3 iceColor  = vec3(0.82, 0.90, 0.97);
-      col = mix(col, iceColor, crystal * cold * 0.45);
+      col = mix(col, iceColor, crystal * cold * 0.12);
       // Subtle blue-white tint across whole area
-      col = mix(col, vec3(0.88, 0.92, 0.97), cold * 0.12);
+      col = mix(col, vec3(0.88, 0.92, 0.97), cold * 0.04);
     }
 
     if (hot > 0.001) {
@@ -82,7 +82,7 @@ const fragmentShader = /* glsl */ `
       float n = fbm(p + t * 0.05);
       // Orange-amber shimmer
       vec3 heatColor = mix(vec3(0.96, 0.82, 0.62), vec3(0.97, 0.70, 0.42), n);
-      col = mix(col, heatColor, n * hot * 0.38);
+      col = mix(col, heatColor, n * hot * 0.10);
     }
 
     return col;
@@ -112,7 +112,7 @@ const fragmentShader = /* glsl */ `
     vec3 heavyDot = vec3(0.60, 0.62, 0.52);
     vec3 dotColor = mix(lightDot, heavyDot, val);
 
-    return mix(BASE, dotColor, dot * 0.80);
+    return mix(BASE, dotColor, dot * 0.06);
   }
 
   // ─── Length ───────────────────────────────────────────────────────────────
@@ -146,7 +146,7 @@ const fragmentShader = /* glsl */ `
 
     // Accent color: slate blue-grey
     vec3 gridColor = vec3(0.70, 0.73, 0.79);
-    col = mix(col, gridColor, grid * 0.45);
+    col = mix(col, gridColor, grid * 0.12);
 
     return col;
   }
@@ -177,9 +177,9 @@ const fragmentShader = /* glsl */ `
     // Small highlight shimmer at surface
     float shimmer = smoothstep(0.008, 0.0, abs(distToSurface))
                   * (0.5 + 0.5 * sin(uv.x * 18.0 + t * 2.5));
-    liquidColor = mix(liquidColor, vec3(1.0, 0.95, 0.82), shimmer * 0.35 * val);
+    liquidColor = mix(liquidColor, vec3(1.0, 0.95, 0.82), shimmer * 0.10 * val);
 
-    return mix(BASE, liquidColor, liquid * 0.55);
+    return mix(BASE, liquidColor, liquid * 0.15);
   }
 
   // ─── Speed ────────────────────────────────────────────────────────────────
@@ -248,7 +248,7 @@ const fragmentShader = /* glsl */ `
       float stripe = exp(-dy * dy / (stripeW[i] * stripeW[i] * 2.0));
 
       // Purple-grey streaks
-      float intensity = streak * stripe * visible * mix(0.18, 0.38, val);
+      float intensity = streak * stripe * visible * mix(0.04, 0.10, val);
       vec3 streakColor = vec3(0.68, 0.65, 0.80);
       col = mix(col, streakColor, intensity);
     }
@@ -273,7 +273,7 @@ const fragmentShader = /* glsl */ `
     float ly = smoothstep(lineW, 0.0, local.y) + smoothstep(1.0 - lineW, 1.0, local.y);
     float grid = clamp(lx + ly, 0.0, 1.0);
     vec3 gridColor = vec3(0.75, 0.72, 0.76);
-    col = mix(col, gridColor, grid * 0.35);
+    col = mix(col, gridColor, grid * 0.05);
 
     // Rose-tinted accent squares — random cells, density up with value
     float cellHash = hash(cell + floor(t * 0.2));  // slow drift
@@ -283,7 +283,7 @@ const fragmentShader = /* glsl */ `
     // Fill the interior of accent cells (not the grid line)
     float interior = (1.0 - lx) * (1.0 - ly);
     vec3 roseColor = vec3(0.93, 0.80, 0.84);
-    col = mix(col, roseColor, isAccent * interior * 0.42);
+    col = mix(col, roseColor, isAccent * interior * 0.05);
 
     return col;
   }
